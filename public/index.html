@@ -268,6 +268,41 @@ async function resolve(){
       <p><a href="${esc(d.originalUrl||url)}" target="_blank" rel="noopener">আসল ভিডিও দেখুন ↗</a></p></div>
     </div>${d.note?`<p class="small"><b>নোট:</b> ${esc(d.note)}</p>`:''}${fmts}<p class="small">ডাউনলোড লিংক খুললে ব্রাউজারে ভিডিও চলতে পারে — সেখান থেকে Save/Download করুন।</p>`;
     attachDownloadButtons();
+    // Facebook merged 1080p: Facebook's 1080p+ formats are
+    // video-only; HD/SD are combined but lower resolution. Offer
+    // a server-merged 1080p-with-sound option when a 1080p
+    // video-only MP4 and an audio format both exist.
+    if(d.platform==='Facebook' && d.formats){
+      const v1080=d.formats.find(f=>/1080p/.test(f.label) && /ভিডিও-only/.test(f.label));
+      const aud=d.formats.find(f=>/অডিও/.test(f.label) && !/ভিডিও-only/.test(f.label));
+      const box=document.querySelector('#resultBox');
+      if(v1080 && aud && box){
+        const mrow=document.createElement('div');
+        mrow.className='q-row';
+        mrow.innerHTML=`<div><span class="q-badge">MP4</span> <span class="q-name">সাউন্ডসহ ১০৮০পি মার্জড MP4 — ভিডিও + অডিও একসাথে</span><br><span class="q-size" id="fbMergeStatus">সার্ভারে ১০৮০পি ভিডিও + অডিও একসাথে করে দেওয়া হবে (কিছুক্ষণ সময় লাগতে পারে)।</span></div><button type="button" class="q-dl" id="fbMergeBtn">তৈরি করুন</button>`;
+        box.insertBefore(mrow, box.querySelector('.q-row'));
+        document.getElementById('fbMergeBtn').onclick=async()=>{
+          const st=document.getElementById('fbMergeStatus');
+          st.textContent='মার্জ শুরু হচ্ছে…';
+          try{
+            const r=await fetch('/api/merge2?v='+encodeURIComponent(v1080.url)+'&a='+encodeURIComponent(aud.url));
+            const j=await r.json();
+            if(!j.ok){st.textContent='দুঃখিত: '+(j.error||'মার্জ শুরু করা যায়নি।');return;}
+            const poll=async()=>{
+              const s=await (await fetch('/api/merge/status?job='+j.job)).json();
+              if(s.status==='ready'){
+                st.innerHTML='তৈরি! <a href="/api/merge/file?job='+j.job+'" target="_blank" rel="noopener">সাউন্ডসহ ১০৮০পি ডাউনলোড করুন ↗</a>';
+                return;
+              }
+              if(s.status==='error'){st.textContent='দুঃখিত: '+(s.error||'মার্জ ব্যর্থ হয়েছে।');return;}
+              st.textContent=s.stage||'কাজ চলছে…';
+              setTimeout(poll,5000);
+            };
+            poll();
+          }catch(e){st.textContent='সার্ভারে সমস্যা হয়েছে। আবার চেষ্টা করুন।';}
+        };
+      }
+    }
     // YouTube: if the fast list has no sound-included format yet,
     // fetch the android combined format in the background and
     // prepend it when it arrives — without blocking the first list.
