@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SaveVid — YouTube, Facebook, Instagram, TikTok, X ভিডিও ডাউনলোডার</title>
+<meta name="description" content="SaveVid দিয়ে YouTube, Facebook, Instagram, TikTok ও X-এর ভিডিও লিংক থেকে আসল ভিডিও তথ্য ও ডাউনলোড অপশন দেখুন। শুধু নিজের বা অনুমতি থাকা ভিডিওর জন্য ব্যবহার করুন।">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="SaveVid — ভিডিও ডাউনলোডার">
+<meta property="og:description" content="লিংক পেস্ট করুন, ভিডিওর আসল তথ্য ও ডাউনলোড অপশন দেখুন।">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Noto Sans Bengali",sans-serif;background:#0b1220;color:#e8eefc;line-height:1.6}
+a{color:#7cc4ff}header,main,footer{max-width:860px;margin:0 auto;padding:16px}
+header h1{margin:8px 0 4px;font-size:32px}header h1 span{color:#ff4d4d}
+.tag{color:#cbd5e1}.card{background:#141f38;border:1px solid #24365e;border-radius:16px;padding:18px;margin:16px 0}
+input{width:100%;padding:14px;border-radius:12px;border:1px solid #334155;background:#0b1220;color:#fff;font-size:16px}
+button{padding:12px 18px;border:0;border-radius:12px;background:#16a34a;color:#fff;font-weight:700;font-size:16px;cursor:pointer;margin-top:12px}
+button.secondary{background:#334155}.chip{display:inline-block;background:#1e293b;border:1px solid #334155;border-radius:999px;padding:4px 10px;margin:3px;font-size:13px}
+.result{display:flex;gap:14px;flex-wrap:wrap}.result img{width:100%;max-width:320px;border-radius:12px}
+.fmt{display:flex;justify-content:space-between;gap:10px;background:#0b1220;border:1px solid #24365e;border-radius:12px;padding:12px;margin:10px 0;flex-wrap:wrap}
+.ad{border:2px dashed #64748b;border-radius:12px;padding:14px;text-align:center;color:#94a3b8;margin:16px 0}
+.ad b{color:#e2e8f0}.warn{background:#3b2a00;border:1px solid #b45309;border-radius:12px;padding:12px}
+.err{background:#3b0d0d;border:1px solid #dc2626;border-radius:12px;padding:12px}
+.small{color:#94a3b8;font-size:14px}h2{font-size:21px}ul{padding-left:20px}
+.history-item{cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+<h1>Save<span>Vid</span></h1>
+<p class="tag">লিংক পেস্ট করুন — ভিডিওর আসল তথ্য ও ডাউনলোড অপশন দেখুন।</p>
+<p>
+<span class="chip">▶ YouTube</span><span class="chip">Facebook</span><span class="chip">Instagram</span><span class="chip">TikTok</span><span class="chip">X (Twitter)</span>
+</p>
+</header>
+
+<main>
+<!-- AD SLOT 1 -->
+<div class="ad"><b>AD SLOT 1 — উপরের বিজ্ঞাপন (Leaderboard)</b><br>
+<!-- এখানে আপনার Adsterra কোড বসান (AD SLOT 1) -->
+এখানে আপনার Adsterra কোড বসান — এখনো কোনো কোড বসানো হয়নি।</div>
+
+<section class="card">
+<label for="link"><b>ভিডিও লিংক</b></label>
+<input id="link" type="url" placeholder="যেমন: https://www.tiktok.com/@.../video/... অথবা YouTube লিংক" autocomplete="off">
+<div><button id="go">ভিডিও আনুন</button> <button class="secondary" id="pasteBtn" type="button">পেস্ট করুন</button></div>
+<p class="small" id="platform">প্ল্যাটফর্ম: লিংক দিলেই এখানে দেখাবে।</p>
+<p class="small">শুধু নিজের ভিডিও, অথবা যার অনুমতি আছে, সেই ভিডিও ডাউনলোড করুন। অন্যের কপিরাইটযুক্ত ভিডিও ডাউনলোড করে আবার আপলোড করবেন না।</p>
+</section>
+
+<section class="card" id="out" style="display:none"></section>
+
+<!-- AD SLOT 2 -->
+<div class="ad"><b>AD SLOT 2 — মাঝের বিজ্ঞাপন (300×250)</b><br>
+<!-- এখানে আপনার Adsterra কোড বসান (AD SLOT 2) -->
+এখানে আপনার Adsterra কোড বসান — এখনো কোনো কোড বসানো হয়নি।</div>
+
+<section class="card">
+<h2>আপনার আগের ভিডিও</h2>
+<ul id="history"><li class="small">এখনো কিছু নেই।</li></ul>
+</section>
+
+<section class="card">
+<h2>কীভাবে ব্যবহার করবেন</h2>
+<ol>
+<li>ভিডিওর লিংক কপি করুন (Share → Copy Link)।</li>
+<li>উপরের বক্সে পেস্ট করুন — পেস্ট করলেই খোঁজা শুরু হবে।</li>
+<li>ভিডিওর নাম/ছবি দেখে Download বাটনে চাপ দিন। লিংক খুললে ভিডিওটি সেভ করুন।</li>
+</ol>
+<h2>সাধারণ প্রশ্ন</h2>
+<p><b>YouTube-এ ডাউনলোড বাটন আসে, কিন্তু ভিডিওতে শব্দ নেই কেন?</b><br>
+YouTube-এর ফরম্যাটগুলো এখানে Invidious রুট থেকে কয়েক সেকেন্ডে আসে, কিন্তু সেগুলো ভিডিও-only স্ট্রিম — অর্থাৎ ছবি আছে, অডিও নেই। তাই প্রতিটি ভিডিও ফরম্যাটের পাশে “ভিডিও-only, অডিও নেই” লেখা থাকে, আর অডিও আলাদা M4A হিসেবে দেওয়া হয়। অডিওসহ মার্জ করা MP4 চাইলে দীর্ঘ সময় চলা সার্ভার (VPS/Render) লাগবে, Netlify-র ফ্রি ফাংশনে সেটা করা যায় না। কোনো ফরম্যাটই না এলে ভুয়া বাটন দেখানো হয় না — আসল ভিডিও দেখুন বাটন দিয়ে মূল ভিডিওতে যান, অথবা আবার চেষ্টা করুন।</p>
+<p><b>Facebook/Instagram ভিডিও কেন আসে না?</b><br>
+শুধু পাবলিক ভিডিওর ক্ষেত্রেই চেষ্টা করা হয়। প্রাইভেট বা লগইন লাগে এমন ভিডিও আসবে না। পাবলিক হলেও Facebook মাঝে মাঝে বট হিসেবে সাময়িকভাবে ব্লক করে — তখন কিছুক্ষণ অপেক্ষা করে আবার চেষ্টা করুন, বারবার দ্রুত চেষ্টা করলে ব্লক আরও বাড়ে। Facebook-এর নির্ভরযোগ্য ডাউনলোডের জন্য দীর্ঘ সময় চলা সার্ভারে yt-dlp লাগবে, Netlify-র ফ্রি ফাংশনে সেটা নিশ্চিত করা যায় না।</p>
+<p><b>TikTok কত তাড়াতাড়ি আসে?</b><br>
+পরীক্ষায় TikTok প্রায় ১ সেকেন্ডে এসেছে।</p>
+<h2>Disclaimer</h2>
+<p>এই সাইটটি শুধু আপনার নিজের ভিডিও, অথবা ডাউনলোডের অনুমতি আছে এমন ভিডিওর জন্য ব্যবহার করুন। কপিরাইটযুক্ত কনটেন্ট অনুমতি ছাড়া ডাউনলোড বা পুনরায় আপলোড করবেন না। প্ল্যাটফর্মের নিয়ম মেনে চলুন।</p>
+</section>
+</main>
+
+<!-- AD SLOT 3 -->
+<footer>
+<div class="ad"><b>AD SLOT 3 — নিচের বিজ্ঞাপন (Bottom Banner)</b><br>
+<!-- এখানে আপনার Adsterra কোড বসান (AD SLOT 3) -->
+এখানে আপনার Adsterra কোড বসান — এখনো কোনো কোড বসানো হয়নি।</div>
+<p class="small">SaveVid — শুধু নিজের/অনুমতি থাকা ভিডিওর জন্য।</p>
+</footer>
+
+<script>
+const $=s=>document.querySelector(s);
+function detect(u){
+  if(/youtu\.?be/.test(u)) return 'YouTube';
+  if(/tiktok\.com|vm\.tiktok\.com/.test(u)) return 'TikTok';
+  if(/twitter\.com|x\.com/.test(u)) return 'X (Twitter)';
+  if(/facebook\.com|fb\.watch/.test(u)) return 'Facebook';
+  if(/instagram\.com/.test(u)) return 'Instagram';
+  return 'অজানা';
+}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function saveHistory(item){
+  try{
+    let h=JSON.parse(localStorage.getItem('savevid_history')||'[]');
+    h=[item,...h.filter(x=>x.url!==item.url)].slice(0,20);
+    localStorage.setItem('savevid_history',JSON.stringify(h)); renderHistory();
+  }catch(e){}
+}
+function renderHistory(){
+  try{
+    let h=JSON.parse(localStorage.getItem('savevid_history')||'[]');
+    $('#history').innerHTML=h.length?h.map(x=>`<li><span class="history-item" data-url="${esc(x.url)}">${esc(x.title||x.url)}</span> <span class="small">(${esc(x.platform||'')})</span></li>`).join(''):'<li class="small">এখনো কিছু নেই।</li>';
+    document.querySelectorAll('.history-item').forEach(el=>el.onclick=()=>{$('#link').value=el.dataset.url; resolve();});
+  }catch(e){}
+}
+let timer=null, startedAt=0;
+async function resolve(){
+  const url=$('#link').value.trim();
+  if(!url){alert('আগে একটি ভিডিও লিংক দিন');return;}
+  $('#platform').textContent='প্ল্যাটফর্ম: '+detect(url);
+  const out=$('#out'); out.style.display='block';
+  startedAt=Date.now();
+  out.innerHTML='<p>খোঁজা হচ্ছে… <span id="elapsed">০ সেকেন্ড</span></p><p class="small">নাম/ছবি ও ডাউনলোড ফরম্যাট কয়েক সেকেন্ডে আসার কথা। YouTube-এর ক্ষেত্রে ভিডিও ফরম্যাটগুলো ভিডিও-only (অডিও নেই), অডিও আলাদা করে নিতে হবে।</p>';
+  clearInterval(timer);
+  timer=setInterval(()=>{const e=$('#elapsed'); if(e) e.textContent=Math.floor((Date.now()-startedAt)/1000)+' সেকেন্ড';},500);
+  try{
+    const r=await fetch('/api/resolve?url='+encodeURIComponent(url));
+    const d=await r.json();
+    clearInterval(timer);
+    if(!d.ok){
+      out.innerHTML=`<div class="err"><b>দুঃখিত, ভিডিও আনা যায়নি।</b><br>${esc(d.error||'আবার চেষ্টা করুন।')}</div>
+      ${d.originalUrl?`<p><a href="${esc(d.originalUrl)}" target="_blank" rel="noopener">আসল ভিডিও দেখুন ↗</a></p>`:''}`;
+      return;
+    }
+    saveHistory({url,title:d.title,platform:d.platform});
+    let fmts='';
+    if(d.formats && d.formats.length){
+      fmts=d.formats.map(f=>`<div class="fmt"><div><b>${esc(f.label)}</b>${f.size?` <span class="small">(${esc(f.size)})</span>`:''}<br><span class="small">${esc(f.note||'')}</span></div><a href="${esc(f.url)}" target="_blank" rel="noopener"><button type="button">Download</button></a></div>`).join('');
+    } else if(d.formatsPending){
+      fmts=`<div class="warn"><b>ডাউনলোড ফরম্যাট এখনো তৈরি হয়নি।</b><br>${esc(d.message||'এই মুহূর্তে YouTube ফরম্যাট আনা যায়নি। ভুয়া বাটন দেখানো হচ্ছে না।')}<br><button type="button" onclick="resolve()">আবার চেষ্টা করুন</button></div>`;
+    } else {
+      fmts=`<div class="warn"><b>এই ভিডিওর ডাউনলোড অপশন পাওয়া যায়নি।</b><br>${esc(d.message||'পাবলিক/অনুমতি থাকা ভিডিও হলে আবার চেষ্টা করুন।')}</div>`;
+    }
+    out.innerHTML=`<div class="result">
+      ${d.thumbnail?`<img src="${esc(d.thumbnail)}" alt="ভিডিও ছবি" referrerpolicy="no-referrer" onerror="if(!this.dataset.fb){this.dataset.fb=1; this.src=this.src.replace('hqdefault','maxresdefault');} else {this.style.display='none';}">`:''}
+      <div><h2 style="margin-top:0">${esc(d.title||'ভিডিও (শিরোনাম আনা যায়নি)')}</h2>
+      <p>${d.author?`লেখক/চ্যানেল: ${esc(d.author)}<br>`:''}প্ল্যাটফর্ম: ${esc(d.platform||'')}${d.duration?`<br>সময়: ${esc(d.duration)}`:''}</p>
+      <p><a href="${esc(d.originalUrl||url)}" target="_blank" rel="noopener">আসল ভিডিও দেখুন ↗</a></p></div>
+    </div>${d.note?`<p class="small"><b>নোট:</b> ${esc(d.note)}</p>`:''}${fmts}<p class="small">ডাউনলোড লিংক খুললে ব্রাউজারে ভিডিও চলতে পারে — সেখান থেকে Save/Download করুন।</p>`;
+  }catch(e){
+    clearInterval(timer);
+    out.innerHTML='<div class="err"><b>সার্ভারে সমস্যা হয়েছে।</b><br>আবার চেষ্টা করুন। Netlify-তে ফাংশন চালু আছে কিনা দেখুন।</div>';
+  }
+}
+$('#go').onclick=resolve;
+$('#link').addEventListener('paste',()=>setTimeout(resolve,400));
+$('#link').addEventListener('keydown',e=>{if(e.key==='Enter') resolve();});
+$('#pasteBtn').onclick=async()=>{
+  try{const t=await navigator.clipboard.readText(); if(t){$('#link').value=t; resolve();} else {$('#link').focus();}}
+  catch(e){$('#link').focus();}
+};
+renderHistory();
+</script>
+</body>
+</html>
