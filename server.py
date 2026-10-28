@@ -19,8 +19,13 @@ Safety / honesty rules built in:
     URLs. Video-only formats are labelled video-only; audio is separate.
   * Direct CDN URLs expire — the frontend must re-resolve if a link
     stops working, never cache them for days.
-  * The server never downloads the video file itself, so it uses almost
-    no bandwidth; the user's browser downloads straight from the CDN.
+  * The server normally never downloads the video file itself, so it
+    uses almost no bandwidth; the user's browser downloads straight
+    from the CDN. EXCEPTION: YouTube merged (video+audio) downloads
+    (/api/merge) — YouTube offers no combined file for many videos,
+    so the server must download the 360p video + audio, mux them
+    with ffmpeg -c copy (no re-encode), and serve the merged file
+    temporarily; the merged file is deleted after download / 15 min.
   * This tool is for videos the user owns or has permission to download.
     The frontend carries that disclaimer.
 
@@ -42,7 +47,9 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
+import uuid
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -353,6 +360,114 @@ def resolve_youtube_combined(url):
     return None, None
 
 
+def ffmpeg_exe():
+    import shutil
+    exe = shutil.which("ffmpeg")
+    if exe:
+        return exe
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return None
+
+
+def _download_file(url, dest):
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=60) as r, open(dest, "wb") as out:
+        while True:
+            chunk = r.read(1024 * 256)
+            if not chunk:
+                break
+            out.write(chunk)
+
+
+_MERGE_JOBS = {}  # job_id -> {status, stage, file, title, error, created}
+
+
+def _merge_worker(job_id, video_url, audio_url, title):
+    job = _MERGE_JOBS[job_id]
+    base = os.path.join("/tmp", "savevid_merge_" + job_id)
+    try:
+        os.makedirs(base, exist_ok=True)
+        job["stage"] = "ভিডিও ডাউনলোড হচ্ছে…"
+        _download_file(video_url, os.path.join(base, "v.mp4"))
+        job["stage"] = "অডিও ডাউনলোড হচ্ছে…"
+        _download_file(audio_url, os.path.join(base, "a.m4a"))
+        job["stage"] = "ভিডিও + অডিও একসাথে করা হচ্ছে…"
+        exe = ffmpeg_exe()
+        if not exe:
+            raise RuntimeError("সার্ভারে ffmpeg পাওয়া যায়নি।")
+        out = os.path.join(base, "merged.mp4")
+        p = subprocess.run([exe, "-y", "-i", os.path.join(base, "v.mp4"),
+                            "-i", os.path.join(base, "a.m4a"),
+                            "-c", "copy", "-shortest", out],
+                           capture_output=True, text=True, timeout=600)
+        if p.returncode != 0 or not os.path.exists(out):
+            raise RuntimeError("মার্জ করতে ব্যর্থ হয়েছে।")
+        os.remove(os.path.join(base, "v.mp4"))
+        os.remove(os.path.join(base, "a.m4a"))
+        job["file"] = out
+        job["status"] = "ready"
+        job["stage"] = "তৈরি — ডাউনলোড করুন।"
+    except Exception as e:
+        job["status"] = "error"
+        job["error"] = str(e)[:200]
+        job["stage"] = "ব্যর্থ হয়েছে।"
+
+
+def start_youtube_merge(url):
+    """Start a background merge job for a YouTube video: 360p MP4
+    video (Invidious adaptive) + M4A audio, muxed with ffmpeg -c copy.
+    Returns (job_id, error_or_None). 360p only, to keep the merged
+    file small enough for Render free (disk + time)."""
+    vid = youtube_id_from_url(url)
+    if not vid:
+        return None, "ভিডিওর লিংকটি বোঝা যায়নি।"
+    import urllib.request
+    data = None
+    for base in [INVIDIOUS_INSTANCES[0]] * 2 + INVIDIOUS_INSTANCES[1:]:
+        try:
+            req = urllib.request.Request(base + "/api/v1/videos/" + vid,
+                                         headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=12) as r:
+                data = json.loads(r.read().decode("utf-8", "ignore"))
+            if data.get("error") or not data.get("title"):
+                data = None
+                continue
+            break
+        except Exception:
+            continue
+    if not data:
+        return None, "Invidious থেকে ভিডিওর তথ্য আনা যায়নি। কিছুক্ষণ পর আবার চেষ্টা করুন।"
+    # Pick MP4 video <= 480p (prefer 360p) + M4A audio.
+    videos = [f for f in (data.get("adaptiveFormats") or [])
+              if f.get("url") and (f.get("type") or "").startswith("video/mp4")]
+    def _res(f):
+        m = re.search(r"(\d+)", f.get("qualityLabel") or f.get("resolution") or "")
+        return int(m.group(1)) if m else 0
+    videos.sort(key=lambda f: abs(_res(f) - 360))
+    audios = [f for f in (data.get("adaptiveFormats") or [])
+              if f.get("url") and (f.get("type") or "").startswith("audio/") and (f.get("container") or "").lower() == "m4a"]
+    if not videos or not audios:
+        return None, "এই ভিডিওর জন্য মার্জ করার মতো ভিডিও/অডিও পাওয়া যায়নি।"
+    v, a = videos[0], audios[0]
+    # Rough size guard: (video+audio bitrate) * duration.
+    dur = int(data.get("lengthSeconds") or 0)
+    est = ((int(v.get("bitrate") or 0) + int(a.get("bitrate") or 0)) * dur) // 8 if dur else 0
+    if est > 500 * 1024 * 1024:
+        return None, "ভিডিওটি অনেক বড় (৫০০MB-এর বেশি হবে), ফ্রি সার্ভারে মার্জ করা যাবে না। ৩৬০পি ভিডিও-only + আলাদা অডিও নিন।"
+    job_id = uuid.uuid4().hex[:16]
+    _MERGE_JOBS[job_id] = {"status": "working", "stage": "শুরু হচ্ছে…",
+                           "file": None, "title": data.get("title") or "YouTube ভিডিও",
+                           "error": None, "created": time.time()}
+    threading.Thread(target=_merge_worker,
+                     args=(job_id, v["url"], a["url"], data.get("title")),
+                     daemon=True).start()
+    return job_id, None
+
+
 def resolve(url):
     now = time.time()
     if url in _cache and now - _cache[url][0] < CACHE_SECONDS:
@@ -591,6 +706,77 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"ok": False, "error": "কোনো লিংক দেওয়া হয়নি।"}, 400)
                 return
             self._send_json(resolve(url))
+            return
+        if path == "/api/merge":
+            url = urllib.parse.parse_qs(parsed.query).get("url", [""])[0]
+            if not url:
+                self._send_json({"ok": False, "error": "কোনো লিংক দেওয়া হয়নি।"}, 400)
+                return
+            job_id, err = start_youtube_merge(url)
+            if err:
+                self._send_json({"ok": False, "error": err})
+            else:
+                self._send_json({"ok": True, "job": job_id})
+            return
+        if path == "/api/merge2":
+            # Generic merge: frontend passes the exact video-only and
+            # audio URLs already returned by /api/resolve. Only CDN
+            # hosts are allowed (no arbitrary SSRF). Used for Facebook
+            # 1080p+sound, where fbcdn download speed is usable
+            # (~1.5 MB/s locally, vs YouTube googlevideo throttling).
+            qs = urllib.parse.parse_qs(parsed.query)
+            vurl, aurl = qs.get("v", [""])[0], qs.get("a", [""])[0]
+            if not vurl or not aurl:
+                self._send_json({"ok": False, "error": "ভিডিও/অডিও লিংক দেওয়া হয়নি।"}, 400)
+                return
+            def _ok_host(u):
+                h = (urllib.parse.urlparse(u).hostname or "").lower()
+                return any(h == d or h.endswith("." + d) for d in
+                           ("fbcdn.net", "googlevideo.com", "cdninstagram.com",
+                            "tiktokcdn.com", "tiktokcdn-us.com"))
+            if not _ok_host(vurl) or not _ok_host(aurl):
+                self._send_json({"ok": False, "error": "এই লিংক মার্জ করা যাবে না।"}, 400)
+                return
+            job_id = uuid.uuid4().hex[:16]
+            _MERGE_JOBS[job_id] = {"status": "working", "stage": "শুরু হচ্ছে…",
+                                   "file": None, "title": "Facebook ভিডিও",
+                                   "error": None, "created": time.time()}
+            threading.Thread(target=_merge_worker,
+                             args=(job_id, vurl, aurl, "Facebook ভিডিও"),
+                             daemon=True).start()
+            self._send_json({"ok": True, "job": job_id})
+            return
+        if path == "/api/merge/status":
+            job_id = urllib.parse.parse_qs(parsed.query).get("job", [""])[0]
+            job = _MERGE_JOBS.get(job_id)
+            if not job:
+                self._send_json({"ok": False, "error": "মার্জ জব পাওয়া যায়নি।"}, 404)
+                return
+            self._send_json({"ok": True, "status": job["status"],
+                             "stage": job["stage"], "error": job["error"],
+                             "title": job["title"]})
+            return
+        if path == "/api/merge/file":
+            job_id = urllib.parse.parse_qs(parsed.query).get("job", [""])[0]
+            job = _MERGE_JOBS.get(job_id)
+            if not job or job["status"] != "ready" or not job["file"] or not os.path.exists(job["file"]):
+                self.send_response(404)
+                self.end_headers()
+                return
+            try:
+                with open(job["file"], "rb") as fh:
+                    body = fh.read()
+            except FileNotFoundError:
+                self.send_response(404)
+                self.end_headers()
+                return
+            safe = re.sub(r"[^A-Za-z0-9_-]+", "_", (job["title"] or "video"))[:60] or "video"
+            self.send_response(200)
+            self.send_header("Content-Type", "video/mp4")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Content-Disposition", f'attachment; filename="{safe}_sound.mp4"')
+            self.end_headers()
+            self.wfile.write(body)
             return
         if path == "/api/combined":
             # Background route for YouTube: the android yt-dlp run
