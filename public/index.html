@@ -135,10 +135,6 @@ footer{border-top:1px solid #eaecf0;padding:36px 0 44px;background:#f6f7f9}
       </div>
       <p class="hint">টিপ: যেকোনো একটা লিংক পেস্ট করলেই খোঁজা শুরু হবে, প্ল্যাটফর্ম অটো-ডিটেক্ট হয়ে আসল ভিডিওর নাম, ছবি ও ডাউনলোড অপশন দেখাবে।</p>
       <div class="result" id="resultBox" aria-live="polite"></div>
-      <div id="historyBox" style="display:none;border-top:1px dashed #d0d5dd;padding-top:14px;margin-top:14px">
-        <b>আপনার আগের ভিডিও</b>
-        <ul id="history"></ul>
-      </div>
     </div>
     <div class="trust-row">
       <span>✓ 100% ফ্রি</span><span>✓ সাইন-আপ লাগবে না</span><span>✓ HD পর্যন্ত</span><span>✓ মোবাইল ও PC — দুটোতেই চলে</span>
@@ -204,6 +200,7 @@ footer{border-top:1px solid #eaecf0;padding:36px 0 44px;background:#f6f7f9}
 </footer>
 <script>
 const $=s=>document.querySelector(s);
+try{localStorage.removeItem('savevid_history');}catch(e){} // old 'previous video' list removed 2026-10-28: no history is kept now
 const DIRECT_LINK='https://asiafilm.org/4/71f92f1c17a327e98497060f4c8897d9';
 let currentVideoKey=null;
 function adShownForVideo(){
@@ -237,23 +234,6 @@ function detect(u){
 }
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function markChips(k){document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c.dataset.plat===k));}
-function saveHistory(item){
-  try{
-    let h=JSON.parse(localStorage.getItem('savevid_history')||'[]');
-    h=[item,...h.filter(x=>x.url!==item.url)].slice(0,20);
-    localStorage.setItem('savevid_history',JSON.stringify(h));renderHistory();
-  }catch(e){}
-}
-function renderHistory(){
-  try{
-    let h=JSON.parse(localStorage.getItem('savevid_history')||'[]');
-    const box=$('#historyBox');
-    if(!h.length){box.style.display='none';return;}
-    box.style.display='block';
-    $('#history').innerHTML=h.map(x=>`<li><span class="history-item" data-url="${esc(x.url)}">${esc(x.title||x.url)}</span> <span class="small">(${esc(x.platform||'')})</span></li>`).join('');
-    document.querySelectorAll('.history-item').forEach(el=>el.onclick=()=>{$('#urlInput').value=el.dataset.url;resolve();});
-  }catch(e){}
-}
 let timer=null,startedAt=0;
 async function resolve(){
   const url=$('#urlInput').value.trim();
@@ -272,7 +252,6 @@ async function resolve(){
       out.innerHTML=`<div class="err"><b>দুঃখিত, ভিডিও আনা যায়নি।</b><br>${esc(d.error||'আবার চেষ্টা করুন।')}</div>${d.originalUrl?`<p><a href="${esc(d.originalUrl)}" target="_blank" rel="noopener">আসল ভিডিও দেখুন ↗</a></p>`:''}`;
       return;
     }
-    saveHistory({url,title:d.title,platform:d.platform});
     currentVideoKey=d.originalUrl||url;
     let fmts='';
     if(d.formats && d.formats.length){
@@ -301,7 +280,6 @@ $('#pasteBtn').onclick=async()=>{
   catch(e){$('#urlInput').focus();}
 };
 document.querySelectorAll('.qa button').forEach(b=>b.onclick=()=>b.parentElement.classList.toggle('open'));
-renderHistory();
 </script>
 </body>
 </html>
