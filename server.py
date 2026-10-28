@@ -256,36 +256,46 @@ def resolve_youtube_via_invidious(url):
     return None
 
 
+TIKWM_LAST_ERROR = ""
+
+
 def resolve_tiktok_via_tikwm(url):
     """Fallback when TikTok blocks yt-dlp from a datacenter IP
     ('Unexpected response from webpage request'). TikWM is a public
     TikTok API mirror; it returns the same video's title/author/cover
     and a no-watermark MP4 play URL plus the music URL."""
+    global TIKWM_LAST_ERROR
     import urllib.request
-    try:
-        api = "https://www.tikwm.com/api/?url=" + urllib.parse.quote(url, safe="")
-        req = urllib.request.Request(api, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=20) as r:
-            data = json.loads(r.read().decode("utf-8", "ignore"))
-        d = data.get("data") or {}
-        if data.get("code") != 0 or not d.get("play"):
-            return None
-        author = (d.get("author") or {}).get("nickname") or (d.get("author") or {}).get("unique_id")
-        fmts = [{"label": "MP4 — সাউন্ডসহ (নো-ওয়াটারমার্ক)", "url": d["play"],
-                 "note": "সাউন্ডসহ আসল ডাউনলোড লিংক — চাপ দিলেই ডাউনলোড হবে।"}]
-        if d.get("wmplay"):
-            fmts.append({"label": "MP4 — ওয়াটারমার্কসহ", "url": d["wmplay"],
-                         "note": "TikTok ওয়াটারমার্কসহ আসল লিংক।"})
-        if d.get("music"):
-            fmts.append({"label": "অডিও — MP3 (শুধু অডিও)", "url": d["music"],
-                         "note": "শুধু অডিওর আসল লিংক।"})
-        return {"ok": True, "platform": "TikTok", "title": d.get("title"),
-                "author": author, "thumbnail": d.get("cover"),
-                "duration": fmt_duration(d.get("duration")),
-                "originalUrl": url, "formats": fmts,
-                "note": "TikTok সরাসরি ব্লক করায় TikWM রুটে তথ্য আনা হয়েছে।"}
-    except Exception:
+    for host in ("https://www.tikwm.com", "https://tikwm.com"):
+        try:
+            api = host + "/api/?url=" + urllib.parse.quote(url, safe="")
+            req = urllib.request.Request(api, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                data = json.loads(r.read().decode("utf-8", "ignore"))
+            d = data.get("data") or {}
+            if data.get("code") != 0 or not d.get("play"):
+                TIKWM_LAST_ERROR = f"{host}: code={data.get('code')}"
+                continue
+            break
+        except Exception as e:
+            TIKWM_LAST_ERROR = f"{host}: {str(e)[:120]}"
+            continue
+    else:
         return None
+    author = (d.get("author") or {}).get("nickname") or (d.get("author") or {}).get("unique_id")
+    fmts = [{"label": "MP4 — সাউন্ডসহ (নো-ওয়াটারমার্ক)", "url": d["play"],
+             "note": "সাউন্ডসহ আসল ডাউনলোড লিংক — চাপ দিলেই ডাউনলোড হবে।"}]
+    if d.get("wmplay"):
+        fmts.append({"label": "MP4 — ওয়াটারমার্কসহ", "url": d["wmplay"],
+                     "note": "TikTok ওয়াটারমার্কসহ আসল লিংক।"})
+    if d.get("music"):
+        fmts.append({"label": "অডিও — MP3 (শুধু অডিও)", "url": d["music"],
+                     "note": "শুধু অডিওর আসল লিংক।"})
+    return {"ok": True, "platform": "TikTok", "title": d.get("title"),
+            "author": author, "thumbnail": d.get("cover"),
+            "duration": fmt_duration(d.get("duration")),
+            "originalUrl": url, "formats": fmts,
+            "note": "TikTok সরাসরি ব্লক করায় TikWM রুটে তথ্য আনা হয়েছে।"}
 
 
 def resolve(url):
@@ -317,6 +327,10 @@ def resolve(url):
         proc = run_ytdlp([])
         if platform == "YouTube" and (proc.returncode != 0 or not proc.stdout.strip()):
             proc = run_ytdlp(["--extractor-args", "youtube:player_client=android"])
+        if platform == "TikTok" and (proc.returncode != 0 or not proc.stdout.strip()):
+            # TikTok's webpage extractor is the part datacenter IPs get
+            # blocked on; its API host is a different route and often works.
+            proc = run_ytdlp(["--extractor-args", "tiktok:api_hostname=api16-normal-c-useast1a.tiktokv.com"])
     except FileNotFoundError:
         return {"ok": False, "error": "সার্ভারে yt-dlp পাওয়া যায়নি। সার্ভার সেটআপে pip install -r requirements.txt চালাতে হবে।"}
     except subprocess.TimeoutExpired:
@@ -345,6 +359,8 @@ def resolve(url):
             if alt:
                 _cache[url] = (now, alt)
                 return alt
+            if TIKWM_LAST_ERROR:
+                detail += f" (TikWM: {TIKWM_LAST_ERROR[:120]})"
         result = {"ok": False, "error": detail}
         # Do NOT cache failures: a cached failure made every retry within
         # 10 minutes return the same error without even trying yt-dlp again.
