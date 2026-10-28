@@ -256,6 +256,38 @@ def resolve_youtube_via_invidious(url):
     return None
 
 
+def resolve_tiktok_via_tikwm(url):
+    """Fallback when TikTok blocks yt-dlp from a datacenter IP
+    ('Unexpected response from webpage request'). TikWM is a public
+    TikTok API mirror; it returns the same video's title/author/cover
+    and a no-watermark MP4 play URL plus the music URL."""
+    import urllib.request
+    try:
+        api = "https://www.tikwm.com/api/?url=" + urllib.parse.quote(url, safe="")
+        req = urllib.request.Request(api, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            data = json.loads(r.read().decode("utf-8", "ignore"))
+        d = data.get("data") or {}
+        if data.get("code") != 0 or not d.get("play"):
+            return None
+        author = (d.get("author") or {}).get("nickname") or (d.get("author") or {}).get("unique_id")
+        fmts = [{"label": "MP4 — সাউন্ডসহ (নো-ওয়াটারমার্ক)", "url": d["play"],
+                 "note": "সাউন্ডসহ আসল ডাউনলোড লিংক — চাপ দিলেই ডাউনলোড হবে।"}]
+        if d.get("wmplay"):
+            fmts.append({"label": "MP4 — ওয়াটারমার্কসহ", "url": d["wmplay"],
+                         "note": "TikTok ওয়াটারমার্কসহ আসল লিংক।"})
+        if d.get("music"):
+            fmts.append({"label": "অডিও — MP3 (শুধু অডিও)", "url": d["music"],
+                         "note": "শুধু অডিওর আসল লিংক।"})
+        return {"ok": True, "platform": "TikTok", "title": d.get("title"),
+                "author": author, "thumbnail": d.get("cover"),
+                "duration": fmt_duration(d.get("duration")),
+                "originalUrl": url, "formats": fmts,
+                "note": "TikTok সরাসরি ব্লক করায় TikWM রুটে তথ্য আনা হয়েছে।"}
+    except Exception:
+        return None
+
+
 def resolve(url):
     now = time.time()
     if url in _cache and now - _cache[url][0] < CACHE_SECONDS:
@@ -304,6 +336,12 @@ def resolve(url):
         # Route 3 for YouTube: Invidious fallback, before giving up.
         if platform == "YouTube":
             alt = resolve_youtube_via_invidious(url)
+            if alt:
+                _cache[url] = (now, alt)
+                return alt
+        # Route 3 for TikTok: TikWM fallback, before giving up.
+        if platform == "TikTok":
+            alt = resolve_tiktok_via_tikwm(url)
             if alt:
                 _cache[url] = (now, alt)
                 return alt
