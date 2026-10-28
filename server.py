@@ -203,7 +203,11 @@ def resolve_youtube_via_invidious(url):
     vid = youtube_id_from_url(url)
     if not vid:
         return None
-    for base in INVIDIOUS_INSTANCES:
+    # The one working instance is flaky (transient timeouts/429s), while
+    # the other listed instances are mostly dead — so retry the working
+    # instance up to 3 times before trying the rest.
+    instances = [INVIDIOUS_INSTANCES[0]] * 3 + INVIDIOUS_INSTANCES[1:]
+    for base in instances:
         try:
             req = urllib.request.Request(
                 base + "/api/v1/videos/" + vid,
@@ -323,10 +327,51 @@ def resolve(url):
              "--socket-timeout", "15", "--dump-json"] + extra + [url],
             capture_output=True, text=True, timeout=90,
         )
+    def run_ytdlp_all(extra):
+        # --format all + first-JSON parse: YouTube's default format
+        # selection fails on some clients ("Requested format is not
+        # available") even though the client does return formats.
+        return subprocess.run(
+            [YTDLP, "--no-download", "--no-playlist", "--no-warnings",
+             "--socket-timeout", "15", "--dump-json", "--format", "all"] + extra + [url],
+            capture_output=True, text=True, timeout=90,
+        )
+
+    def first_json(text):
+        try:
+            obj, _ = json.JSONDecoder().raw_decode(text.strip())
+            return obj
+        except Exception:
+            return None
+
     try:
         proc = run_ytdlp([])
-        if platform == "YouTube" and (proc.returncode != 0 or not proc.stdout.strip()):
-            proc = run_ytdlp(["--extractor-args", "youtube:player_client=android"])
+        yt_info = None
+        if platform == "YouTube":
+            # First, the normal full-format run (best quality when it works).
+            try:
+                _info = json.loads(proc.stdout) if proc.stdout.strip() else None
+            except Exception:
+                _info = None
+            _real = [f for f in (_info.get("formats") or []) if f.get("url")
+                     and (f.get("vcodec") not in (None, "none") or f.get("acodec") not in (None, "none"))] if _info else []
+            if proc.returncode == 0 and _real:
+                yt_info = _info
+            else:
+                # Rotate YouTube player clients: web, android, ios, tv,
+                # web_embedded — different clients pass different bot checks
+                # for different videos, and "all" format parsing avoids the
+                # format-selection failure that kills ios/web for some videos.
+                for client in ("web", "android", "ios", "tv", "web_embedded"):
+                    p = run_ytdlp_all(["--extractor-args", f"youtube:player_client={client}"])
+                    info = first_json(p.stdout) if p.stdout.strip() else None
+                    real = [f for f in (info.get("formats") or []) if f.get("url")
+                            and (f.get("vcodec") not in (None, "none") or f.get("acodec") not in (None, "none"))]
+                    if p.returncode == 0 and info and real:
+                        yt_info = info
+                        proc = p
+                        break
+                    proc = p
         if platform == "TikTok" and (proc.returncode != 0 or not proc.stdout.strip()):
             # TikTok's webpage extractor is the part datacenter IPs get
             # blocked on; its API host is a different route and often works.
@@ -366,10 +411,13 @@ def resolve(url):
         # 10 minutes return the same error without even trying yt-dlp again.
         return result
 
-    try:
-        info = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        return {"ok": False, "error": "সার্ভারের উত্তর বোঝা যায়নি। আবার চেষ্টা করুন।"}
+    if platform == "YouTube" and yt_info is not None:
+        info = yt_info
+    else:
+        try:
+            info = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            return {"ok": False, "error": "সার্ভারের উত্তর বোঝা যায়নি। আবার চেষ্টা করুন।"}
 
     title, author = clean_title(info.get("title"), info.get("uploader"))
     # yt-dlp's Facebook uploader is often the whole "views | caption | Page"
