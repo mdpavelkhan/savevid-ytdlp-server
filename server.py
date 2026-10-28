@@ -161,6 +161,92 @@ def build_formats(info, platform):
     return formats[:6]
 
 
+INVIDIOUS_INSTANCES = [
+    "https://yt.chocolatemoo53.com",
+    "https://invidious.privacyredirect.com",
+    "https://inv.nadeko.net",
+]
+
+
+def youtube_id_from_url(url):
+    try:
+        u = urllib.parse.urlparse(url)
+        q = urllib.parse.parse_qs(u.query)
+        if q.get("v"):
+            return q["v"][0]
+        m = re.search(r"/(?:shorts|embed|live|v)/([A-Za-z0-9_-]{6,})", u.path)
+        if m:
+            return m.group(1)
+        m = re.search(r"^/([A-Za-z0-9_-]{6,})$", u.path)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    return None
+
+
+def resolve_youtube_via_invidious(url):
+    """Fallback when YouTube bot-blocks yt-dlp from a datacenter IP.
+    Invidious is a separate YouTube front-end; its API returns the same
+    video's title/author/thumbnail and real googlevideo format URLs.
+    Returns a result dict, or None if every instance fails."""
+    import urllib.request
+    vid = youtube_id_from_url(url)
+    if not vid:
+        return None
+    for base in INVIDIOUS_INSTANCES:
+        try:
+            req = urllib.request.Request(
+                base + "/api/v1/videos/" + vid,
+                headers={"User-Agent": "Mozilla/5.0"},
+            )
+            with urllib.request.urlopen(req, timeout=20) as r:
+                data = json.loads(r.read().decode("utf-8", "ignore"))
+            if data.get("error") or not data.get("title"):
+                continue
+            fmts = []
+            seen_res = set()
+            videos = [f for f in data.get("adaptiveFormats") or []
+                      if f.get("url") and (f.get("type") or "").startswith("video/")]
+            def res_num(f):
+                m = re.search(r"(\d+)", f.get("qualityLabel") or f.get("resolution") or "")
+                return int(m.group(1)) if m else 0
+            # Highest resolution first; prefer MP4 over WebM/AV1 at same resolution.
+            videos.sort(key=lambda f: (res_num(f), 1 if (f.get("container") or "").lower() == "mp4" else 0), reverse=True)
+            for f in videos:
+                res = f.get("qualityLabel") or f.get("resolution") or ""
+                if not res or res in seen_res:
+                    continue
+                seen_res.add(res)
+                cont = (f.get("container") or "MP4").upper()
+                fmts.append({"label": f"{cont} — {res} (ভিডিও-only, অডিও নেই)",
+                             "url": f["url"], "note": "ভিডিও-only — অডিও আলাদা ডাউনলোড করুন।"})
+                if len(fmts) >= 3:
+                    break
+            audios = [f for f in data.get("adaptiveFormats") or []
+                      if f.get("url") and (f.get("type") or "").startswith("audio/")]
+            audios.sort(key=lambda f: (1 if (f.get("container") or "").lower() == "m4a" else 0, int(f.get("bitrate") or 0)), reverse=True)
+            if audios:
+                a = audios[0]
+                cont = (a.get("container") or "M4A").upper()
+                fmts.append({"label": f"অডিও — {cont} (শুধু অডিও)",
+                             "url": a["url"], "note": "শুধু অডিও।"})
+            if not fmts:
+                continue
+            return {
+                "ok": True, "platform": "YouTube", "title": data.get("title"),
+                "author": data.get("author"),
+                "thumbnail": f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg",
+                "duration": fmt_duration(data.get("lengthSeconds")),
+                "originalUrl": f"https://www.youtube.com/watch?v={vid}",
+                "formats": fmts,
+                "note": "YouTube সরাসরি ব্লক করায় Invidious রুটে তথ্য আনা হয়েছে — ফরম্যাট ভিডিও-only / অডিও আলাদা হতে পারে।",
+            }
+        except Exception:
+            continue
+    return None
+
+
 def resolve(url):
     now = time.time()
     if url in _cache and now - _cache[url][0] < CACHE_SECONDS:
@@ -206,6 +292,12 @@ def resolve(url):
             detail = "ভিডিওর তথ্য আনা যায়নি। লিংকটি পাবলিক কিনা দেখুন, কিছুক্ষণ পর আবার চেষ্টা করুন।"
             if msg:
                 detail += " (সার্ভার: " + msg[:200] + ")"
+        # Route 3 for YouTube: Invidious fallback, before giving up.
+        if platform == "YouTube":
+            alt = resolve_youtube_via_invidious(url)
+            if alt:
+                _cache[url] = (now, alt)
+                return alt
         result = {"ok": False, "error": detail}
         # Do NOT cache failures: a cached failure made every retry within
         # 10 minutes return the same error without even trying yt-dlp again.
