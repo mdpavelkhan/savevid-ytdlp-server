@@ -216,6 +216,20 @@ def resolve_youtube_via_invidious(url):
             if data.get("error") or not data.get("title"):
                 continue
             fmts = []
+            # COMBINED first: Invidious "formatStreams" are progressive
+            # (audio+video in one file, e.g. itag 18 = 360p MP4). The
+            # old code ignored them, so users only ever saw video-only
+            # even when a sound-included file existed. Some videos
+            # have no formatStream (web client omits it) — then the
+            # android yt-dlp route (/api/combined) is the only way.
+            for f in data.get("formatStreams") or []:
+                if not f.get("url"):
+                    continue
+                res = f.get("qualityLabel") or f.get("resolution") or ""
+                cont = (f.get("container") or "MP4").upper()
+                fmts.append({"label": f"{cont} — {res} (সাউন্ডসহ)",
+                             "url": f["url"],
+                             "note": "সাউন্ডসহ আসল ডাউনলোড লিংক — চাপ দিলেই সাউন্ডসহ ভিডিও নামবে, আলাদা অডিও লাগবে না।"})
             seen_res = set()
             videos = [f for f in data.get("adaptiveFormats") or []
                       if f.get("url") and (f.get("type") or "").startswith("video/")]
@@ -251,7 +265,7 @@ def resolve_youtube_via_invidious(url):
                 "duration": fmt_duration(data.get("lengthSeconds")),
                 "originalUrl": f"https://www.youtube.com/watch?v={vid}",
                 "formats": fmts,
-                "note": "YouTube সরাসরি ব্লক করায় Invidious রুটে তথ্য আনা হয়েছে — ফরম্যাট ভিডিও-only / অডিও আলাদা হতে পারে।",
+                "note": ("প্রথম অপশনটি সাউন্ডসহ ভিডিও — সেটা নিলে আলাদা অডিও লাগবে না। " if any("সাউন্ডসহ" in f["label"] for f in fmts) else "") + "YouTube সরাসরি ব্লক করায় Invidious রুটে তথ্য আনা হয়েছে — বাকি ফরম্যাট ভিডিও-only / অডিও আলাদা হতে পারে।",
             }
         except Exception:
             continue
@@ -402,7 +416,7 @@ def resolve(url):
             _fc = _ex.submit(resolve_youtube_combined, url)
             _fi = _ex.submit(resolve_youtube_via_invidious, url)
             try:
-                _cinfo, _cfmt = _fc.result(timeout=25)
+                _cinfo, _cfmt = _fc.result(timeout=15)
             except Exception:
                 _cinfo, _cfmt = None, None
             try:
@@ -411,7 +425,7 @@ def resolve(url):
                 alt = None
         finally:
             _ex.shutdown(wait=False)
-        if alt and _cfmt:
+        if alt and _cfmt and not any("সাউন্ডসহ" in f["label"] for f in (alt.get("formats") or [])):
             alt["formats"] = [_cfmt] + (alt.get("formats") or [])
             alt["note"] = "প্রথম অপশনটি সাউন্ডসহ ভিডিও — সেটা নিলে আলাদা অডিও লাগবে না। " + (alt.get("note") or "")
             _cache[url] = (now, alt)
@@ -577,6 +591,22 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"ok": False, "error": "কোনো লিংক দেওয়া হয়নি।"}, 400)
                 return
             self._send_json(resolve(url))
+            return
+        if path == "/api/combined":
+            # Background route for YouTube: the android yt-dlp run
+            # can be slow / bot-blocked on Render, so the main
+            # resolve must not block on it. The frontend calls this
+            # after showing the fast Invidious list and prepends the
+            # combined format when (and if) it arrives.
+            url = urllib.parse.parse_qs(parsed.query).get("url", [""])[0]
+            if not url:
+                self._send_json({"ok": False, "error": "কোনো লিংক দেওয়া হয়নি।"}, 400)
+                return
+            _info, _fmt = resolve_youtube_combined(url)
+            if _fmt:
+                self._send_json({"ok": True, "format": _fmt})
+            else:
+                self._send_json({"ok": False})
             return
         if path in ("/", "/index.html"):
             self._send_file(os.path.join("public", "index.html"), "text/html; charset=utf-8")
