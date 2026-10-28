@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SaveVid — YouTube, Facebook, Instagram, TikTok, X ভিডিও ডাউনলোডার</title>
-<meta name="description" content="SaveVid দিয়ে YouTube, Facebook, Instagram, TikTok ও X-এর ভিডিও লিংক থেকে আসল ভিডিও তথ্য ও ডাউনলোড অপশন দেখুন। শুধু নিজের বা অনুমতি থাকা ভিডিওর জন্য ব্যবহার করুন।">
+<title>SaveVid — YouTube, Facebook, Instagram, TikTok ভিডিও ডাউনলোডার</title>
+<meta name="description" content="SaveVid দিয়ে YouTube, Facebook, Instagram ও TikTok-এর ভিডিও লিংক থেকে আসল ভিডিও তথ্য ও ডাউনলোড অপশন দেখুন। শুধু নিজের বা অনুমতি থাকা ভিডিওর জন্য ব্যবহার করুন।">
 <meta name="robots" content="index, follow">
 <meta name="google-site-verification" content="sErOvsW13sMTv7nci2qsj3uvu-RY9pGrxCBuEowfl4Y" />
 <meta property="og:title" content="SaveVid — Free Video Downloader">
-<meta property="og:description" content="Download videos from YouTube, Facebook, Instagram, TikTok and X in HD MP4 or audio — free, no sign-up.">
+<meta property="og:description" content="Download videos from YouTube, Facebook, Instagram and TikTok in HD MP4 or audio — free, no sign-up.">
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:"Hind Siliguri",system-ui,-apple-system,"Noto Sans Bengali",sans-serif;background:#fff;color:#101828;line-height:1.6}
 a{color:inherit;text-decoration:none}button,input{font:inherit}
@@ -119,7 +119,7 @@ footer{border-top:1px solid #eaecf0;padding:36px 0 44px;background:#f6f7f9}
   <div class="wrap hero-inner">
     <div class="hero-logo"><span class="brand-mark">↓</span><span>Save<em>Vid</em></span></div>
     <h1>যেকোনো প্ল্যাটফর্মের ভিডিও <span class="hl">এক ক্লিকেই</span> ডাউনলোড করুন</h1>
-    <p>YouTube, Facebook, Instagram, TikTok আর X — শুধু ভিডিওর লিংকটা পেস্ট করুন। <strong>কোয়ালিটি বেছে নিন, ডাউনলোড করুন।</strong> কোনো অ্যাপ লাগবে না, সাইন-আপও না।</p>
+    <p>YouTube, Facebook, Instagram আর TikTok — শুধু ভিডিওর লিংকটা পেস্ট করুন। <strong>কোয়ালিটি বেছে নিন, ডাউনলোড করুন।</strong> কোনো অ্যাপ লাগবে না, সাইন-আপও না।</p>
     <div class="dl-card">
       <div class="dl-top">
         <label class="input-wrap">
@@ -135,7 +135,6 @@ footer{border-top:1px solid #eaecf0;padding:36px 0 44px;background:#f6f7f9}
         <span class="chip" data-plat="facebook">f Facebook</span>
         <span class="chip" data-plat="instagram">◎ Instagram</span>
         <span class="chip" data-plat="tiktok">♪ TikTok</span>
-        <span class="chip" data-plat="x">𝕏 X / Twitter</span>
       </div>
       <p class="hint">টিপ: যেকোনো একটা লিংক পেস্ট করলেই খোঁজা শুরু হবে, প্ল্যাটফর্ম অটো-ডিটেক্ট হয়ে আসল ভিডিওর নাম, ছবি ও ডাউনলোড অপশন দেখাবে।</p>
       <div class="result" id="resultBox" aria-live="polite"></div>
@@ -198,7 +197,7 @@ footer{border-top:1px solid #eaecf0;padding:36px 0 44px;background:#f6f7f9}
 </section>
 <footer>
   <div class="wrap foot">
-    <div><a class="brand" href="#" style="font-size:20px"><span class="brand-mark" style="width:32px;height:32px">↓</span><span>Save<em>Vid</em></span></a><p>Free Video Downloader — YouTube, Facebook, Instagram, TikTok ও X ভিডিও HD MP4 / অডিওতে ডাউনলোডের সহজ টুল।</p></div>
+    <div><a class="brand" href="#" style="font-size:20px"><span class="brand-mark" style="width:32px;height:32px">↓</span><span>Save<em>Vid</em></span></a><p>Free Video Downloader — YouTube, Facebook, Instagram ও TikTok ভিডিও HD MP4 / অডিওতে ডাউনলোডের সহজ টুল।</p></div>
     <nav class="foot-links"><a href="#how">কিভাবে কাজ করে</a><a href="#faq">FAQ</a></nav>
   </div>
 </footer>
@@ -233,7 +232,6 @@ function detect(u){
   if(/facebook\.com|fb\.watch/.test(u)) return 'facebook';
   if(/instagram\.com/.test(u)) return 'instagram';
   if(/tiktok\.com|vm\.tiktok\.com/.test(u)) return 'tiktok';
-  if(/twitter\.com|x\.com/.test(u)) return 'x';
   return null;
 }
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
