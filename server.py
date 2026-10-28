@@ -118,7 +118,25 @@ def build_formats(info, platform):
         if f:
             add(label, f["url"], "Facebook-এর আসল লিংক। এই লিংকে সময়সীমা থাকতে পারে — দেরি করলে লিংকটি আবার দিন।")
 
-    # 2) Best video-only MP4 per resolution (highest bitrate per height).
+    # 2) Combined (audio+video) formats FIRST — these are the ones a user
+    #    can tap once and get a playable video with sound (TikTok, Facebook
+    #    progressive, and any platform that offers a combined MP4).
+    #    Instagram's original MP4s carry no codec labels at all (vcodec and
+    #    acodec both None) but are combined playable files — treat them so.
+    for f in raw:
+        if (f.get("vcodec") in (None, "none") and f.get("acodec") in (None, "none")
+                and (f.get("ext") or "").lower() == "mp4"):
+            add("MP4 — সাউন্ডসহ", f["url"], "সাউন্ডসহ আসল ডাউনলোড লিংক — চাপ দিলেই ডাউনলোড হবে।")
+            break
+    for f in raw:
+        if f.get("vcodec") not in (None, "none") and f.get("acodec") not in (None, "none"):
+            h = f.get("height")
+            res = f"{h}p" if h else ""
+            add(f"MP4 — {res} (সাউন্ডসহ)".strip(), f["url"], "সাউন্ডসহ আসল ডাউনলোড লিংক — চাপ দিলেই ডাউনলোড হবে।")
+            if len(formats) >= 3:
+                break
+
+    # 3) Best video-only MP4 per resolution (highest bitrate per height).
     best_video = {}
     for f in raw:
         if f.get("vcodec") in (None, "none") or f.get("acodec") not in (None, "none"):
@@ -134,7 +152,7 @@ def build_formats(info, platform):
         add(f"MP4 — {h}p (ভিডিও-only, অডিও নেই)", f["url"],
             "এই ফাইলে অডিও থাকবে না — অডিও আলাদা করে নিন।")
 
-    # 3) Best audio-only.
+    # 4) Best audio-only.
     best_audio = None
     for f in raw:
         if f.get("acodec") not in (None, "none") and f.get("vcodec") in (None, "none"):
@@ -143,15 +161,6 @@ def build_formats(info, platform):
     if best_audio:
         ext = (best_audio.get("ext") or "audio").upper()
         add(f"অডিও — {ext} (শুধু অডিও)", best_audio["url"], "শুধু অডিওর আসল লিংক।")
-
-    # 4) Any other combined (audio+video) format yt-dlp offers, e.g. TikTok.
-    for f in raw:
-        if f.get("vcodec") not in (None, "none") and f.get("acodec") not in (None, "none"):
-            h = f.get("height")
-            res = f"{h}p" if h else ""
-            add(f"MP4 — {res}".strip(), f["url"], "আসল ডাউনলোড লিংক।")
-            if len(formats) >= 6:
-                break
 
     # 5) Fallback: yt-dlp's own best requested format.
     for f in info.get("requested_formats") or []:
