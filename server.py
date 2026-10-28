@@ -176,12 +176,20 @@ def resolve(url):
         _cache[url] = (now, result)
         return result
 
-    try:
-        proc = subprocess.run(
+    # YouTube often bot-checks datacenter IPs (Render) while a home IP works.
+    # Try the normal (web) client first for full formats; if it fails, retry
+    # with the android player client, which usually avoids the PO-token check
+    # and at least returns a combined audio+video format.
+    def run_ytdlp(extra):
+        return subprocess.run(
             [YTDLP, "--no-download", "--no-playlist", "--no-warnings",
-             "--socket-timeout", "15", "--dump-json", url],
+             "--socket-timeout", "15", "--dump-json"] + extra + [url],
             capture_output=True, text=True, timeout=90,
         )
+    try:
+        proc = run_ytdlp([])
+        if platform == "YouTube" and (proc.returncode != 0 or not proc.stdout.strip()):
+            proc = run_ytdlp(["--extractor-args", "youtube:player_client=android"])
     except FileNotFoundError:
         return {"ok": False, "error": "সার্ভারে yt-dlp পাওয়া যায়নি। সার্ভার সেটআপে pip install -r requirements.txt চালাতে হবে।"}
     except subprocess.TimeoutExpired:
@@ -193,9 +201,14 @@ def resolve(url):
         if "Private" in msg or "login" in msg.lower():
             detail = "এই ভিডিওটি লগইন ছাড়া দেখা যাচ্ছে না — প্রাইভেট বা ফ্রেন্ডস-অনলি হতে পারে। শুধু পাবলিক ভিডিওই আসবে।"
         else:
+            # Show the real yt-dlp reason (truncated) so a failure is diagnosable
+            # instead of the same generic message every time.
             detail = "ভিডিওর তথ্য আনা যায়নি। লিংকটি পাবলিক কিনা দেখুন, কিছুক্ষণ পর আবার চেষ্টা করুন।"
+            if msg:
+                detail += " (সার্ভার: " + msg[:200] + ")"
         result = {"ok": False, "error": detail}
-        _cache[url] = (now, result)
+        # Do NOT cache failures: a cached failure made every retry within
+        # 10 minutes return the same error without even trying yt-dlp again.
         return result
 
     try:
