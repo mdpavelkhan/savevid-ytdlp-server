@@ -14,7 +14,7 @@ downloads fail there. yt-dlp uses Facebook's own video API routes and
 returns real fbcdn links (verified 2026-10-28 for the user's link).
 
 Safety / honesty rules built in:
-  * Only YouTube, Facebook, Instagram, TikTok, X/Twitter domains allowed.
+  * Only YouTube, Facebook, Instagram, TikTok domains allowed.
   * Only formats yt-dlp actually returns are offered, with their real
     URLs. Video-only formats are labelled video-only; audio is separate.
   * Direct CDN URLs expire — the frontend must re-resolve if a link
@@ -52,7 +52,7 @@ CACHE_SECONDS = 600  # 10 minutes, like the earlier app
 
 ALLOWED = re.compile(
     r"^(.*\.)?(youtube\.com|youtu\.be|tiktok\.com|vm\.tiktok\.com|"
-    r"twitter\.com|x\.com|facebook\.com|fb\.watch|instagram\.com)$",
+    r"facebook\.com|fb\.watch|instagram\.com)$",
     re.IGNORECASE,
 )
 
@@ -65,8 +65,6 @@ def platform_of(host):
         return "YouTube"
     if "tiktok" in h:
         return "TikTok"
-    if h == "x.com" or "twitter" in h:
-        return "X (Twitter)"
     if "facebook" in h or "fb.watch" in h:
         return "Facebook"
     if "instagram" in h:
@@ -313,7 +311,7 @@ def resolve(url):
         host = ""
     platform = platform_of(host) if ALLOWED.match(host) else None
     if not platform:
-        result = {"ok": False, "error": "এই লিংকটি সমর্থিত নয়। YouTube, Facebook, Instagram, TikTok বা X-এর লিংক দিন।"}
+        result = {"ok": False, "error": "এই লিংকটি সমর্থিত নয়। YouTube, Facebook, Instagram বা TikTok-এর লিংক দিন।"}
         _cache[url] = (now, result)
         return result
 
