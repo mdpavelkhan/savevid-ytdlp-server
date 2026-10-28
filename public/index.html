@@ -268,6 +268,22 @@ async function resolve(){
       <p><a href="${esc(d.originalUrl||url)}" target="_blank" rel="noopener">আসল ভিডিও দেখুন ↗</a></p></div>
     </div>${d.note?`<p class="small"><b>নোট:</b> ${esc(d.note)}</p>`:''}${fmts}<p class="small">ডাউনলোড লিংক খুললে ব্রাউজারে ভিডিও চলতে পারে — সেখান থেকে Save/Download করুন।</p>`;
     attachDownloadButtons();
+    // YouTube: if the fast list has no sound-included format yet,
+    // fetch the android combined format in the background and
+    // prepend it when it arrives — without blocking the first list.
+    if(d.platform==='YouTube' && !(d.formats||[]).some(f=>/সাউন্ডসহ/.test(f.label))){
+      fetch('/api/combined?url='+encodeURIComponent(url)).then(r=>r.json()).then(c=>{
+        if(!c.ok || !c.format) return;
+        const box=document.querySelector('#resultBox');
+        if(!box) return;
+        const row=document.createElement('div');
+        row.className='q-row';
+        row.innerHTML=`<div><span class="q-badge">${esc(c.format.label.split('—')[0].trim())}</span> <span class="q-name">${esc(c.format.label)}</span><br><span class="q-size">${esc(c.format.note||'')}</span></div><button type="button" class="q-dl dl-btn" data-url="${esc(c.format.url)}">Download</button>`;
+        const first=box.querySelector('.q-row');
+        if(first) box.insertBefore(row, first); else box.appendChild(row);
+        attachDownloadButtons();
+      }).catch(()=>{});
+    }
   }catch(e){
     clearInterval(timer);
     out.innerHTML='<div class="err"><b>সার্ভারে সমস্যা হয়েছে।</b><br>আবার চেষ্টা করুন।</div>';
