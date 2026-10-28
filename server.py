@@ -206,14 +206,14 @@ def resolve_youtube_via_invidious(url):
     # The one working instance is flaky (transient timeouts/429s), while
     # the other listed instances are mostly dead — so retry the working
     # instance up to 3 times before trying the rest.
-    instances = [INVIDIOUS_INSTANCES[0]] * 3 + INVIDIOUS_INSTANCES[1:]
+    instances = [INVIDIOUS_INSTANCES[0]] * 2 + INVIDIOUS_INSTANCES[1:]
     for base in instances:
         try:
             req = urllib.request.Request(
                 base + "/api/v1/videos/" + vid,
                 headers={"User-Agent": "Mozilla/5.0"},
             )
-            with urllib.request.urlopen(req, timeout=20) as r:
+            with urllib.request.urlopen(req, timeout=12) as r:
                 data = json.loads(r.read().decode("utf-8", "ignore"))
             if data.get("error") or not data.get("title"):
                 continue
@@ -274,7 +274,7 @@ def resolve_tiktok_via_tikwm(url):
         try:
             api = host + "/api/?url=" + urllib.parse.quote(url, safe="")
             req = urllib.request.Request(api, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=20) as r:
+            with urllib.request.urlopen(req, timeout=12) as r:
                 data = json.loads(r.read().decode("utf-8", "ignore"))
             d = data.get("data") or {}
             if data.get("code") != 0 or not d.get("play"):
@@ -324,8 +324,8 @@ def resolve(url):
     def run_ytdlp(extra):
         return subprocess.run(
             [YTDLP, "--no-download", "--no-playlist", "--no-warnings",
-             "--socket-timeout", "15", "--dump-json"] + extra + [url],
-            capture_output=True, text=True, timeout=90,
+             "--socket-timeout", "10", "--dump-json"] + extra + [url],
+            capture_output=True, text=True, timeout=45,
         )
     def run_ytdlp_all(extra):
         # --format all + first-JSON parse: YouTube's default format
@@ -333,8 +333,8 @@ def resolve(url):
         # available") even though the client does return formats.
         return subprocess.run(
             [YTDLP, "--no-download", "--no-playlist", "--no-warnings",
-             "--socket-timeout", "15", "--dump-json", "--format", "all"] + extra + [url],
-            capture_output=True, text=True, timeout=90,
+             "--socket-timeout", "10", "--dump-json", "--format", "all"] + extra + [url],
+            capture_output=True, text=True, timeout=45,
         )
 
     def first_json(text):
@@ -345,25 +345,28 @@ def resolve(url):
             return None
 
     try:
-        proc = run_ytdlp([])
+        proc = run_ytdlp([]) if platform != "YouTube" else None
         yt_info = None
         if platform == "YouTube":
-            # First, the normal full-format run (best quality when it works).
-            try:
-                _info = json.loads(proc.stdout) if proc.stdout.strip() else None
-            except Exception:
-                _info = None
-            _real = [f for f in (_info.get("formats") or []) if f.get("url")
-                     and (f.get("vcodec") not in (None, "none") or f.get("acodec") not in (None, "none"))] if _info else []
-            if proc.returncode == 0 and _real:
-                yt_info = _info
-            else:
-                # Rotate YouTube player clients: web, android, ios, tv,
-                # web_embedded — different clients pass different bot checks
-                # for different videos, and "all" format parsing avoids the
-                # format-selection failure that kills ios/web for some videos.
-                for client in ("web", "android", "ios", "tv", "web_embedded"):
-                    p = run_ytdlp_all(["--extractor-args", f"youtube:player_client={client}"])
+            # A dummy failed proc so the error path below works even if
+            # every client attempt raises before setting proc.
+            class _P:
+                returncode = 1
+                stdout = ""
+                stderr = "YouTube clients failed"
+            proc = _P()
+            # SPEED FIRST: skip the slow default web run entirely for
+            # YouTube and start with android, which returns a playable
+            # sound-included format fastest (360p). A 30s+ wait loses
+            # users; a fast 360p download beats a slow 1080p one.
+            # Only if android fails do we try the other clients, then
+            # Invidious.
+            if True:
+                for client in ("android", "ios", "tv", "web_embedded", "web"):
+                    try:
+                        p = run_ytdlp_all(["--extractor-args", f"youtube:player_client={client}"])
+                    except Exception:
+                        continue
                     info = first_json(p.stdout) if p.stdout.strip() else None
                     real = [f for f in (info.get("formats") or []) if f.get("url")
                             and (f.get("vcodec") not in (None, "none") or f.get("acodec") not in (None, "none"))]
