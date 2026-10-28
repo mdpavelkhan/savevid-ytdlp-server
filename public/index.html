@@ -6,125 +6,224 @@
 <title>SaveVid — YouTube, Facebook, Instagram, TikTok, X ভিডিও ডাউনলোডার</title>
 <meta name="description" content="SaveVid দিয়ে YouTube, Facebook, Instagram, TikTok ও X-এর ভিডিও লিংক থেকে আসল ভিডিও তথ্য ও ডাউনলোড অপশন দেখুন। শুধু নিজের বা অনুমতি থাকা ভিডিওর জন্য ব্যবহার করুন।">
 <meta name="robots" content="index, follow">
-<meta property="og:title" content="SaveVid — ভিডিও ডাউনলোডার">
-<meta property="og:description" content="লিংক পেস্ট করুন, ভিডিওর আসল তথ্য ও ডাউনলোড অপশন দেখুন।">
+<meta property="og:title" content="SaveVid — Free Video Downloader">
+<meta property="og:description" content="Download videos from YouTube, Facebook, Instagram, TikTok and X in HD MP4 or audio — free, no sign-up.">
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Noto Sans Bengali",sans-serif;background:#0b1220;color:#e8eefc;line-height:1.6}
-a{color:#7cc4ff}header,main,footer{max-width:860px;margin:0 auto;padding:16px}
-header h1{margin:8px 0 4px;font-size:32px}header h1 span{color:#ff4d4d}
-.tag{color:#cbd5e1}.card{background:#141f38;border:1px solid #24365e;border-radius:16px;padding:18px;margin:16px 0}
-input{width:100%;padding:14px;border-radius:12px;border:1px solid #334155;background:#0b1220;color:#fff;font-size:16px}
-button{padding:12px 18px;border:0;border-radius:12px;background:#16a34a;color:#fff;font-weight:700;font-size:16px;cursor:pointer;margin-top:12px}
-button.secondary{background:#334155}.chip{display:inline-block;background:#1e293b;border:1px solid #334155;border-radius:999px;padding:4px 10px;margin:3px;font-size:13px}
-.result{display:flex;gap:14px;flex-wrap:wrap}.result img{width:100%;max-width:320px;border-radius:12px}
-.fmt{display:flex;justify-content:space-between;gap:10px;background:#0b1220;border:1px solid #24365e;border-radius:12px;padding:12px;margin:10px 0;flex-wrap:wrap}
-.ad{border:2px dashed #64748b;border-radius:12px;padding:14px;text-align:center;color:#94a3b8;margin:16px 0}
-.ad b{color:#e2e8f0}.warn{background:#3b2a00;border:1px solid #b45309;border-radius:12px;padding:12px}
-.err{background:#3b0d0d;border:1px solid #dc2626;border-radius:12px;padding:12px}
-.small{color:#94a3b8;font-size:14px}h2{font-size:21px}ul{padding-left:20px}
+*{box-sizing:border-box}body{margin:0;font-family:"Hind Siliguri",system-ui,-apple-system,"Noto Sans Bengali",sans-serif;background:#fff;color:#101828;line-height:1.6}
+a{color:inherit;text-decoration:none}button,input{font:inherit}
+.wrap{width:min(1120px,100% - 40px);margin:0 auto}
+@media(max-width:640px){.wrap{width:calc(100% - 32px)}}
+.nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-bottom:1px solid #eaecf0}
+.nav-inner{height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px}
+.brand-mark{width:36px;height:36px;border-radius:10px;background:#e62e1b;display:grid;place-items:center;color:#fff}
+.brand em{font-style:normal;color:#e62e1b}
+.nav-links{display:flex;gap:28px;font-size:15px;color:#667085}
+.nav-links a:hover{color:#101828}
+.nav-cta{display:inline-flex;background:#101828;color:#fff;padding:9px 16px;border-radius:999px;font-weight:600;font-size:14px}
+@media(max-width:760px){.nav-links,.nav-cta{display:none}}
+.hero{background:#0c1222;color:#fff;overflow:hidden;position:relative}
+.hero::after{content:"";position:absolute;inset:auto -10% -55% -10%;height:420px;background:radial-gradient(ellipse at center,rgba(230,46,27,.28),transparent 65%);pointer-events:none}
+.hero-inner{position:relative;z-index:1;padding:56px 0 44px;text-align:center}
+.live-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600}
+.live-badge i{width:8px;height:8px;border-radius:50%;background:#32d583;display:block;box-shadow:0 0 0 4px rgba(50,213,131,.18)}
+h1{font-size:clamp(34px,5.4vw,58px);line-height:1.08;letter-spacing:-.03em;margin:20px auto 14px;max-width:820px;font-weight:800}
+h1 .hl{color:#ff6b57;white-space:nowrap}
+.hero p{max-width:640px;margin:0 auto;color:#cbd2e1;font-size:17px}
+.hero p strong{color:#fff}
+.dl-card{max-width:820px;margin:30px auto 0;background:#fff;color:#101828;border-radius:20px;padding:10px;box-shadow:0 24px 60px rgba(0,0,0,.35);text-align:left}
+.dl-top{display:flex;gap:10px}
+.input-wrap{flex:1;display:flex;align-items:center;gap:10px;border:1.5px solid #d0d5dd;border-radius:14px;padding:0 8px 0 16px;min-height:58px}
+.input-wrap:focus-within{border-color:#e62e1b;box-shadow:0 0 0 4px #fff1f0}
+.input-wrap input{flex:1;border:0;outline:0;font-size:15.5px;min-width:0}
+.paste-btn{border:1px solid #eaecf0;background:#f6f7f9;padding:8px 12px;border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.fetch-btn{border:0;background:#e62e1b;color:#fff;padding:0 26px;border-radius:14px;font-weight:700;font-size:16px;cursor:pointer;min-height:58px;white-space:nowrap}
+.fetch-btn:hover{background:#c81e0e}
+@media(max-width:640px){.dl-top{flex-direction:column}.fetch-btn{width:100%;justify-content:center}}
+.detect-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:14px 6px 4px}
+.detect-label{font-size:13px;color:#475467;font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid #eaecf0;padding:6px 11px;border-radius:999px;font-size:13.5px;font-weight:600;background:#fff}
+.chip.active{background:#101828;color:#fff;border-color:#101828}
+.hint{font-size:13.5px;color:#475467;padding:8px 6px 2px}
+.result{display:none;margin-top:14px;border-top:1px dashed #d0d5dd;padding-top:16px}
+.result.show{display:block}
+.result-grid{display:grid;grid-template-columns:240px 1fr;gap:18px}
+@media(max-width:640px){.result-grid{grid-template-columns:1fr}}
+.thumb{border-radius:14px;overflow:hidden;position:relative;aspect-ratio:16/9;background:#101828}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.plat-badge{position:absolute;left:10px;top:10px;z-index:2;background:#fff;color:#111;font-size:12px;font-weight:700;padding:5px 9px;border-radius:999px}
+.duration{position:absolute;right:10px;bottom:10px;z-index:2;background:rgba(0,0,0,.75);color:#fff;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px}
+.r-title{font-weight:700;font-size:17px;line-height:1.45;margin:2px 0 4px}
+.r-meta{font-size:13.5px;color:#667085}
+.q-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #eaecf0;border-radius:12px;padding:11px 14px;background:#fbfbfc;margin-top:8px;flex-wrap:wrap}
+.q-badge{font-weight:800;font-size:13px;background:#101828;color:#fff;padding:4px 8px;border-radius:7px;min-width:52px;text-align:center}
+.q-name{font-weight:600;font-size:14.5px}.q-size{font-size:13px;color:#667085}
+.q-dl{border:0;background:#067647;color:#fff;font-weight:700;font-size:13.5px;padding:8px 14px;border-radius:9px;cursor:pointer;white-space:nowrap}
+.warn{background:#fffaeb;border:1px solid #fedf89;border-radius:12px;padding:12px;color:#7a4a00}
+.err{background:#fff1f0;border:1px solid #fecdca;border-radius:12px;padding:12px;color:#7a271a}
+.small{color:#667085;font-size:14px}
+.trust-row{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 26px;margin-top:26px;color:#d6dae6;font-size:14px;position:relative;z-index:1;padding-bottom:8px}
+section{padding:64px 0}.sec-head{max-width:640px;margin-bottom:28px}.sec-head.center{margin-inline:auto;text-align:center}
+h2{font-size:clamp(26px,3.4vw,36px);line-height:1.2;margin:0 0 10px;font-weight:800}
+.sec-head p{color:#667085;margin:0;font-size:16px}
+.plat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+@media(max-width:920px){.plat-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.plat-grid{grid-template-columns:repeat(2,1fr)}}
+.plat{border:1px solid #eaecf0;border-radius:18px;padding:20px 18px}
+.plat-icon{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;color:#fff;margin-bottom:14px;font-weight:800}
+.plat h3{margin:0 0 4px;font-size:17px}.plat p{margin:0;color:#667085;font-size:13.5px}
+.soft{background:#f6f7f9;border-block:1px solid #eaecf0}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:820px){.steps{grid-template-columns:1fr}}
+.step{background:#fff;border:1px solid #eaecf0;border-radius:18px;padding:24px}
+.step-num{font-size:13px;font-weight:800;letter-spacing:.08em;color:#e62e1b;text-transform:uppercase}
+.step h3{margin:8px 0 6px;font-size:19px}.step p{margin:0;color:#667085;font-size:15px}
+.features{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:920px){.features{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.features{grid-template-columns:1fr}}
+.feat{padding:22px;border-radius:18px;border:1px solid #eaecf0}
+.feat h3{margin:0 0 6px;font-size:17px}.feat p{margin:0;color:#667085;font-size:14.5px}
+.ad-wrap{padding:22px 0 6px}.ad-slot{max-width:970px;margin:0 auto;border:1.5px dashed #d0d5dd;border-radius:14px;background:#f6f7f9;padding:14px 16px;text-align:center;overflow:hidden}
+.ad-slot .ad-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#98a2b3;font-weight:700;margin-bottom:6px}
+.ad-slot-rect{max-width:336px}
+.faq{max-width:820px;margin:0 auto;display:grid;gap:10px}
+.qa{border:1px solid #eaecf0;border-radius:14px;overflow:hidden}
+.qa button{width:100%;text-align:left;background:none;border:0;padding:18px 20px;display:flex;justify-content:space-between;gap:16px;cursor:pointer;font-weight:600;font-size:16px}
+.qa .ans{display:none;padding:0 20px 18px;color:#667085;font-size:15px}
+.qa.open .ans{display:block}
+.disclaimer{max-width:820px;margin:28px auto 0;border:1px solid #fedf89;background:#fffaeb;color:#7a4a00;border-radius:14px;padding:18px 20px;font-size:14.5px}
+.disclaimer strong{display:block;margin-bottom:4px}
 .history-item{cursor:pointer;text-decoration:underline}
+footer{border-top:1px solid #eaecf0;padding:36px 0 44px;background:#f6f7f9}
+.foot{display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between}
+.foot p{color:#667085;font-size:14px;max-width:420px;margin:8px 0 0}
+.foot-links{display:flex;gap:22px;flex-wrap:wrap;font-size:14.5px;color:#667085}
 </style>
 </head>
 <body>
-<header>
-<h1>Save<span>Vid</span></h1>
-<p class="tag">লিংক পেস্ট করুন — ভিডিওর আসল তথ্য ও ডাউনলোড অপশন দেখুন।</p>
-<p>
-<span class="chip">▶ YouTube</span><span class="chip">Facebook</span><span class="chip">Instagram</span><span class="chip">TikTok</span><span class="chip">X (Twitter)</span>
-</p>
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#"><span class="brand-mark">↓</span><span>Save<em>Vid</em></span></a>
+    <nav class="nav-links">
+      <a href="#platforms">প্ল্যাটফর্ম</a>
+      <a href="#how">কিভাবে কাজ করে</a>
+      <a href="#faq">সাধারণ জিজ্ঞাসা</a>
+    </nav>
+    <a class="nav-cta" href="#downloader">ডাউনলোড শুরু করুন</a>
+  </div>
 </header>
-
-<main>
-<!-- AD SLOT 1 — Banner 728x90 -->
-<div class="ad"><b>AD SLOT 1 — উপরের বিজ্ঞাপন (Leaderboard)</b><br>
-<script>
-  atOptions = {
-    'key' : '888e2ec1745318221bc8d37ad9bd70cc',
-    'format' : 'iframe',
-    'height' : 90,
-    'width' : 728,
-    'params' : {}
-  };
-</script>
-<script src="https://bauval.org/22/888e2ec1745318221bc8d37ad9bd70cc"></script></div>
-
-<section class="card">
-<label for="link"><b>ভিডিও লিংক</b></label>
-<input id="link" type="url" placeholder="যেমন: https://www.tiktok.com/@.../video/... অথবা YouTube লিংক" autocomplete="off">
-<div><button id="go">ভিডিও আনুন</button> <button class="secondary" id="pasteBtn" type="button">পেস্ট করুন</button></div>
-<p class="small" id="platform">প্ল্যাটফর্ম: লিংক দিলেই এখানে দেখাবে।</p>
-<p class="small">শুধু নিজের ভিডিও, অথবা যার অনুমতি আছে, সেই ভিডিও ডাউনলোড করুন। অন্যের কপিরাইটযুক্ত ভিডিও ডাউনলোড করে আবার আপলোড করবেন না।</p>
+<div class="hero" id="downloader">
+  <div class="wrap hero-inner">
+    <span class="live-badge"><i></i> লাইভ — yt-dlp সার্ভার</span>
+    <h1>যেকোনো প্ল্যাটফর্মের ভিডিও <span class="hl">এক ক্লিকেই</span> ডাউনলোড করুন</h1>
+    <p>YouTube, Facebook, Instagram, TikTok আর X — শুধু ভিডিওর লিংকটা পেস্ট করুন। <strong>কোয়ালিটি বেছে নিন, ডাউনলোড করুন।</strong> কোনো অ্যাপ লাগবে না, সাইন-আপও না।</p>
+    <div class="dl-card">
+      <div class="dl-top">
+        <label class="input-wrap">
+          <span>🔗</span>
+          <input id="urlInput" type="url" inputmode="url" placeholder="এখানে ভিডিওর লিংক পেস্ট করুন — যেমন: youtube.com/watch?v=..." autocomplete="off">
+          <button class="paste-btn" id="pasteBtn" type="button">Paste</button>
+        </label>
+        <button class="fetch-btn" id="fetchBtn" type="button">↓ ভিডিও আনুন</button>
+      </div>
+      <div class="detect-row" id="detectRow">
+        <span class="detect-label">সাপোর্টেড:</span>
+        <span class="chip" data-plat="youtube">▶ YouTube</span>
+        <span class="chip" data-plat="facebook">f Facebook</span>
+        <span class="chip" data-plat="instagram">◎ Instagram</span>
+        <span class="chip" data-plat="tiktok">♪ TikTok</span>
+        <span class="chip" data-plat="x">𝕏 X / Twitter</span>
+      </div>
+      <p class="hint">টিপ: যেকোনো একটা লিংক পেস্ট করলেই খোঁজা শুরু হবে, প্ল্যাটফর্ম অটো-ডিটেক্ট হয়ে আসল ভিডিওর নাম, ছবি ও ডাউনলোড অপশন দেখাবে।</p>
+      <div class="result" id="resultBox" aria-live="polite"></div>
+      <div id="historyBox" style="display:none;border-top:1px dashed #d0d5dd;padding-top:14px;margin-top:14px">
+        <b>আপনার আগের ভিডিও</b>
+        <ul id="history"></ul>
+      </div>
+    </div>
+    <div class="trust-row">
+      <span>✓ 100% ফ্রি</span><span>✓ সাইন-আপ লাগবে না</span><span>✓ HD পর্যন্ত</span><span>✓ মোবাইল ও PC — দুটোতেই চলে</span>
+    </div>
+  </div>
+</div>
+<div class="wrap ad-wrap" aria-label="Advertisement">
+  <div class="ad-slot" id="ad-slot-1">
+    <div class="ad-label">Advertisement</div>
+    <script>
+      atOptions = {'key' : '888e2ec1745318221bc8d37ad9bd70cc','format' : 'iframe','height' : 90,'width' : 728,'params' : {}};
+    </script>
+    <script src="https://bauval.org/22/888e2ec1745318221bc8d37ad9bd70cc"></script>
+  </div>
+</div>
+<section id="platforms">
+  <div class="wrap">
+    <div class="sec-head"><h2>সব জনপ্রিয় প্ল্যাটফর্ম, এক জায়গায়</h2><p>প্রতিটা প্ল্যাটফর্মের জন্য আলাদা টুল খুঁজতে হবে না — একটা বক্সেই সব লিংক কাজ করবে।</p></div>
+    <div class="plat-grid">
+      <article class="plat"><div class="plat-icon" style="background:#ff0000">▶</div><h3>YouTube</h3><p>ভিডিও, Shorts — আসল কোয়ালিটি অপশন, ভিডিও-only হলে সেভাবেই লেখা থাকবে, অডিও আলাদা।</p></article>
+      <article class="plat"><div class="plat-icon" style="background:#1877f2">f</div><h3>Facebook</h3><p>পাবলিক ভিডিও, Reels ও Watch ভিডিও HD বা SD কোয়ালিটিতে।</p></article>
+      <article class="plat"><div class="plat-icon" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)">◎</div><h3>Instagram</h3><p>পাবলিক Reels ও পোস্ট ভিডিও — লিংক কপি করলেই আসল তথ্য আসবে।</p></article>
+      <article class="plat"><div class="plat-icon" style="background:#111">♪</div><h3>TikTok</h3><p>পাবলিক TikTok ভিডিওর আসল ডাউনলোড অপশন, সাথে অডিওও।</p></article>
+      <article class="plat"><div class="plat-icon" style="background:#000">𝕏</div><h3>X (Twitter)</h3><p>পাবলিক টুইটে থাকা ভিডিওর আসল ডাউনলোড অপশন।</p></article>
+    </div>
+  </div>
 </section>
-
-<section class="card" id="out" style="display:none"></section>
-
-<!-- AD SLOT 2 — Banner 300x250 -->
-<div class="ad"><b>AD SLOT 2 — মাঝের বিজ্ঞাপন (300×250)</b><br>
-<script>
-  atOptions = {
-    'key' : '528f8568f38cb80a1ba85c7bd3797810',
-    'format' : 'iframe',
-    'height' : 250,
-    'width' : 300,
-    'params' : {}
-  };
-</script>
-<script src="https://bauval.org/22/528f8568f38cb80a1ba85c7bd3797810"></script></div>
-
-<section class="card">
-<h2>আপনার আগের ভিডিও</h2>
-<ul id="history"><li class="small">এখনো কিছু নেই।</li></ul>
+<section class="soft" id="how">
+  <div class="wrap">
+    <div class="sec-head center"><h2>মাত্র ৩ ধাপে ডাউনলোড</h2><p>কোনো টেকনিক্যাল ঝামেলা নেই — যে কেউ পারবে।</p></div>
+    <div class="steps">
+      <article class="step"><div class="step-num">Step 01</div><h3>লিংক কপি করুন</h3><p>YouTube / Facebook / TikTok অ্যাপে ভিডিওটা খুলে Share → Copy Link চাপুন।</p></article>
+      <article class="step"><div class="step-num">Step 02</div><h3>এখানে পেস্ট করুন</h3><p>উপরের বক্সে লিংকটা পেস্ট করুন। প্ল্যাটফর্ম অটো-ডিটেক্ট হয়ে আসল নাম, ছবি ও ডাউনলোড অপশন আসবে।</p></article>
+      <article class="step"><div class="step-num">Step 03</div><h3>কোয়ালিটি বেছে ডাউনলোড</h3><p>পছন্দের ফরম্যাটে Download চাপ দিন। এই ভিডিওর প্রথম ক্লিকে Sponsored লিংক খুলবে, পরের ক্লিকে সরাসরি ডাউনলোড হবে।</p></article>
+    </div>
+  </div>
 </section>
-
-<section class="card">
-<h2>কীভাবে ব্যবহার করবেন</h2>
-<ol>
-<li>ভিডিওর লিংক কপি করুন (Share → Copy Link)।</li>
-<li>উপরের বক্সে পেস্ট করুন — পেস্ট করলেই খোঁজা শুরু হবে।</li>
-<li>ভিডিওর নাম/ছবি দেখে Download বাটনে চাপ দিন। লিংক খুললে ভিডিওটি সেভ করুন।</li>
-</ol>
-<h2>সাধারণ প্রশ্ন</h2>
-<p><b>YouTube-এ ডাউনলোড বাটন আসে, কিন্তু ভিডিওতে শব্দ নেই কেন?</b><br>
-YouTube-এর ফরম্যাটগুলো এখানে Invidious রুট থেকে কয়েক সেকেন্ডে আসে, কিন্তু সেগুলো ভিডিও-only স্ট্রিম — অর্থাৎ ছবি আছে, অডিও নেই। তাই প্রতিটি ভিডিও ফরম্যাটের পাশে “ভিডিও-only, অডিও নেই” লেখা থাকে, আর অডিও আলাদা M4A হিসেবে দেওয়া হয়। অডিওসহ মার্জ করা MP4 চাইলে দীর্ঘ সময় চলা সার্ভার (VPS/Render) লাগবে, Netlify-র ফ্রি ফাংশনে সেটা করা যায় না। কোনো ফরম্যাটই না এলে ভুয়া বাটন দেখানো হয় না — আসল ভিডিও দেখুন বাটন দিয়ে মূল ভিডিওতে যান, অথবা আবার চেষ্টা করুন।</p>
-<p><b>Facebook/Instagram ভিডিও কেন আসে না?</b><br>
-শুধু পাবলিক ভিডিওর ক্ষেত্রেই চেষ্টা করা হয়। প্রাইভেট বা লগইন লাগে এমন ভিডিও আসবে না। পাবলিক হলেও Facebook মাঝে মাঝে বট হিসেবে সাময়িকভাবে ব্লক করে — তখন কিছুক্ষণ অপেক্ষা করে আবার চেষ্টা করুন, বারবার দ্রুত চেষ্টা করলে ব্লক আরও বাড়ে। Facebook-এর নির্ভরযোগ্য ডাউনলোডের জন্য দীর্ঘ সময় চলা সার্ভারে yt-dlp লাগবে, Netlify-র ফ্রি ফাংশনে সেটা নিশ্চিত করা যায় না।</p>
-<p><b>TikTok কত তাড়াতাড়ি আসে?</b><br>
-পরীক্ষায় TikTok প্রায় ১ সেকেন্ডে এসেছে।</p>
-<h2>Disclaimer</h2>
-<p>এই সাইটটি শুধু আপনার নিজের ভিডিও, অথবা ডাউনলোডের অনুমতি আছে এমন ভিডিওর জন্য ব্যবহার করুন। কপিরাইটযুক্ত কনটেন্ট অনুমতি ছাড়া ডাউনলোড বা পুনরায় আপলোড করবেন না। প্ল্যাটফর্মের নিয়ম মেনে চলুন।</p>
+<section>
+  <div class="wrap">
+    <div class="sec-head"><h2>কেন এই ডাউনলোডার?</h2><p>ভুয়া বাটন নয় — শুধু সার্ভার থেকে আসা আসল ফরম্যাটই দেখানো হয়।</p></div>
+    <div class="features">
+      <article class="feat"><h3>সুপার ফাস্ট</h3><p>লিংক দিলেই কয়েক সেকেন্ডে আসল তথ্য ও কোয়ালিটি অপশন রেডি।</p></article>
+      <article class="feat"><h3>আসল কোয়ালিটি</h3><p>যে কোয়ালিটি আসলেই আছে, শুধু সেটাই দেখানো হয় — ভুয়া 1080p বানানো হয় না।</p></article>
+      <article class="feat"><h3>অডিও আলাদা</h3><p>ভিডিও-only ফরম্যাটে অডিও নেই লেখা থাকে, অডিও আলাদা M4A/MP3 হিসেবে দেওয়া হয়।</p></article>
+      <article class="feat"><h3>সব ডিভাইসে চলে</h3><p>Android, iPhone, Windows, Mac — ব্রাউজার থাকলেই হবে, অ্যাপ ইন্সটল লাগবে না।</p></article>
+    </div>
+  </div>
 </section>
-</main>
-
-<!-- AD SLOT 3 -->
+<div class="wrap ad-wrap" aria-label="Advertisement" style="padding-bottom:22px">
+  <div class="ad-slot ad-slot-rect" id="ad-slot-2">
+    <div class="ad-label">Advertisement</div>
+    <script>
+      atOptions = {'key' : '528f8568f38cb80a1ba85c7bd3797810','format' : 'iframe','height' : 250,'width' : 300,'params' : {}};
+    </script>
+    <script src="https://bauval.org/22/528f8568f38cb80a1ba85c7bd3797810"></script>
+  </div>
+</div>
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-head center"><h2>সাধারণ জিজ্ঞাসা</h2><p>ব্যবহারকারীরা সবচেয়ে বেশি যেসব প্রশ্ন করবে।</p></div>
+    <div class="faq" id="faqList">
+      <div class="qa open"><button type="button">এটা কি সত্যিই ফ্রি? <span>⌄</span></button><div class="ans">হ্যাঁ — কোনো পেমেন্ট বা সাইন-আপের ধাপ নেই। ব্যবহারকারী সরাসরি লিংক পেস্ট করে ডাউনলোড করতে পারবে।</div></div>
+      <div class="qa"><button type="button">প্রাইভেট ভিডিও কি ডাউনলোড হবে? <span>⌄</span></button><div class="ans">না। শুধু পাবলিক ভিডিওর লিংক কাজ করবে। প্রাইভেট বা লগইন-লাগে এমন কনটেন্ট সাপোর্ট করা হবে না।</div></div>
+      <div class="qa"><button type="button">ভিডিওতে শব্দ নেই কেন? <span>⌄</span></button><div class="ans">কিছু ফরম্যাট ভিডিও-only — সেগুলোর পাশে "ভিডিও-only, অডিও নেই" লেখা থাকে। অডিও আলাদা করে ডাউনলোড করুন, অথবা HD/SD ফরম্যাট বেছে নিন।</div></div>
+      <div class="qa"><button type="button">প্রথম ডাউনলোড ক্লিকে অ্যাড কেন আসে? <span>⌄</span></button><div class="ans">প্রতিটি ভিডিওর প্রথম ডাউনলোড ক্লিকে একটি Sponsored লিংক নতুন ট্যাবে খুলবে। ওই ভিডিওর পরের ক্লিকগুলোতে সরাসরি ডাউনলোড হবে, নতুন ভিডিওর প্রথম ক্লিকে আবার Sponsored লিংক খুলবে।</div></div>
+    </div>
+    <div class="disclaimer"><strong>⚠ দায়িত্বশীল ব্যবহারের নোটিশ (Disclaimer)</strong>এই টুলটি শুধুমাত্র নিজের ভিডিও বা অনুমতি আছে এমন কনটেন্ট ডাউনলোডের জন্য। কপিরাইটযুক্ত ভিডিও, গান বা অন্যের কনটেন্ট অনুমতি ছাড়া ডাউনলোড ও পুনঃপ্রকাশ করা সংশ্লিষ্ট প্ল্যাটফর্মের নিয়ম ও কপিরাইট আইনের লঙ্ঘন হতে পারে।</div>
+  </div>
+</section>
 <footer>
-<div class="ad"><b>AD SLOT 3 — নিচের বিজ্ঞাপন (Bottom Banner)</b><br>
-<!-- এখানে আপনার Adsterra কোড বসান (AD SLOT 3) -->
-এখানে আপনার Adsterra কোড বসান — এখনো কোনো কোড বসানো হয়নি।</div>
-<p class="small">SaveVid — শুধু নিজের/অনুমতি থাকা ভিডিওর জন্য।</p>
+  <div class="wrap foot">
+    <div><a class="brand" href="#" style="font-size:20px"><span class="brand-mark" style="width:32px;height:32px">↓</span><span>Save<em>Vid</em></span></a><p>Free Video Downloader — YouTube, Facebook, Instagram, TikTok ও X ভিডিও HD MP4 / অডিওতে ডাউনলোডের সহজ টুল।</p></div>
+    <nav class="foot-links"><a href="#platforms">প্ল্যাটফর্ম</a><a href="#how">কিভাবে কাজ করে</a><a href="#faq">FAQ</a></nav>
+  </div>
 </footer>
-
 <script>
 const $=s=>document.querySelector(s);
-// Direct Link (Sponsored) — first download click PER VIDEO.
-// Each new video: its first download click opens the sponsored link in a
-// new tab and does NOT download yet. Later clicks for that same video
-// download directly, no ad. A different video gets its own first-click ad.
-// Flags are stored per video URL in localStorage, so they survive reloads
-// on the same browser. Not once-per-day and not once-per-browser.
 const DIRECT_LINK='https://asiafilm.org/4/71f92f1c17a327e98497060f4c8897d9';
 let currentVideoKey=null;
 function adShownForVideo(){
-  try{
-    const m=JSON.parse(localStorage.getItem('savevid_ad_shown_videos')||'{}');
-    return !!(currentVideoKey && m[currentVideoKey]);
-  }catch(e){ return false; }
+  try{const m=JSON.parse(localStorage.getItem('savevid_ad_shown_videos')||'{}');return !!(currentVideoKey && m[currentVideoKey]);}catch(e){return false;}
 }
 function markAdShownForVideo(){
-  try{
-    const m=JSON.parse(localStorage.getItem('savevid_ad_shown_videos')||'{}');
-    if(currentVideoKey) m[currentVideoKey]=1;
-    localStorage.setItem('savevid_ad_shown_videos',JSON.stringify(m));
-  }catch(e){}
+  try{const m=JSON.parse(localStorage.getItem('savevid_ad_shown_videos')||'{}');if(currentVideoKey)m[currentVideoKey]=1;localStorage.setItem('savevid_ad_shown_videos',JSON.stringify(m));}catch(e){}
 }
 function attachDownloadButtons(){
   document.querySelectorAll('.dl-btn').forEach(b=>{
@@ -141,78 +240,81 @@ function attachDownloadButtons(){
   });
 }
 function detect(u){
-  if(/youtu\.?be/.test(u)) return 'YouTube';
-  if(/tiktok\.com|vm\.tiktok\.com/.test(u)) return 'TikTok';
-  if(/twitter\.com|x\.com/.test(u)) return 'X (Twitter)';
-  if(/facebook\.com|fb\.watch/.test(u)) return 'Facebook';
-  if(/instagram\.com/.test(u)) return 'Instagram';
-  return 'অজানা';
+  u=(u||'').toLowerCase();
+  if(/youtu\.?be/.test(u)) return 'youtube';
+  if(/facebook\.com|fb\.watch/.test(u)) return 'facebook';
+  if(/instagram\.com/.test(u)) return 'instagram';
+  if(/tiktok\.com|vm\.tiktok\.com/.test(u)) return 'tiktok';
+  if(/twitter\.com|x\.com/.test(u)) return 'x';
+  return null;
 }
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function markChips(k){document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c.dataset.plat===k));}
 function saveHistory(item){
   try{
     let h=JSON.parse(localStorage.getItem('savevid_history')||'[]');
     h=[item,...h.filter(x=>x.url!==item.url)].slice(0,20);
-    localStorage.setItem('savevid_history',JSON.stringify(h)); renderHistory();
+    localStorage.setItem('savevid_history',JSON.stringify(h));renderHistory();
   }catch(e){}
 }
 function renderHistory(){
   try{
     let h=JSON.parse(localStorage.getItem('savevid_history')||'[]');
-    $('#history').innerHTML=h.length?h.map(x=>`<li><span class="history-item" data-url="${esc(x.url)}">${esc(x.title||x.url)}</span> <span class="small">(${esc(x.platform||'')})</span></li>`).join(''):'<li class="small">এখনো কিছু নেই।</li>';
-    document.querySelectorAll('.history-item').forEach(el=>el.onclick=()=>{$('#link').value=el.dataset.url; resolve();});
+    const box=$('#historyBox');
+    if(!h.length){box.style.display='none';return;}
+    box.style.display='block';
+    $('#history').innerHTML=h.map(x=>`<li><span class="history-item" data-url="${esc(x.url)}">${esc(x.title||x.url)}</span> <span class="small">(${esc(x.platform||'')})</span></li>`).join('');
+    document.querySelectorAll('.history-item').forEach(el=>el.onclick=()=>{$('#urlInput').value=el.dataset.url;resolve();});
   }catch(e){}
 }
-let timer=null, startedAt=0;
+let timer=null,startedAt=0;
 async function resolve(){
-  const url=$('#link').value.trim();
+  const url=$('#urlInput').value.trim();
   if(!url){alert('আগে একটি ভিডিও লিংক দিন');return;}
-  $('#platform').textContent='প্ল্যাটফর্ম: '+detect(url);
-  const out=$('#out'); out.style.display='block';
+  const key=detect(url);markChips(key);
+  const out=$('#resultBox');out.classList.add('show');
   startedAt=Date.now();
-  out.innerHTML='<p>খোঁজা হচ্ছে… <span id="elapsed">০ সেকেন্ড</span></p><p class="small">নাম/ছবি ও ডাউনলোড ফরম্যাট কয়েক সেকেন্ডে আসার কথা। YouTube-এর ক্ষেত্রে ভিডিও ফরম্যাটগুলো ভিডিও-only (অডিও নেই), অডিও আলাদা করে নিতে হবে।</p>';
+  out.innerHTML='<p>খোঁজা হচ্ছে… <span id="elapsed">০ সেকেন্ড</span></p><p class="small">আসল ভিডিওর নাম, ছবি ও ডাউনলোড ফরম্যাট কয়েক সেকেন্ডে আসার কথা।</p>';
   clearInterval(timer);
-  timer=setInterval(()=>{const e=$('#elapsed'); if(e) e.textContent=Math.floor((Date.now()-startedAt)/1000)+' সেকেন্ড';},500);
+  timer=setInterval(()=>{const e=$('#elapsed');if(e)e.textContent=Math.floor((Date.now()-startedAt)/1000)+' সেকেন্ড';},500);
   try{
     const r=await fetch('/api/resolve?url='+encodeURIComponent(url));
     const d=await r.json();
     clearInterval(timer);
     if(!d.ok){
-      out.innerHTML=`<div class="err"><b>দুঃখিত, ভিডিও আনা যায়নি।</b><br>${esc(d.error||'আবার চেষ্টা করুন।')}</div>
-      ${d.originalUrl?`<p><a href="${esc(d.originalUrl)}" target="_blank" rel="noopener">আসল ভিডিও দেখুন ↗</a></p>`:''}`;
+      out.innerHTML=`<div class="err"><b>দুঃখিত, ভিডিও আনা যায়নি।</b><br>${esc(d.error||'আবার চেষ্টা করুন।')}</div>${d.originalUrl?`<p><a href="${esc(d.originalUrl)}" target="_blank" rel="noopener">আসল ভিডিও দেখুন ↗</a></p>`:''}`;
       return;
     }
     saveHistory({url,title:d.title,platform:d.platform});
     currentVideoKey=d.originalUrl||url;
     let fmts='';
     if(d.formats && d.formats.length){
-      fmts='<p class="small">Sponsored: এই ভিডিওর প্রথম ডাউনলোড ক্লিকে একটি স্পন্সর লিংক নতুন ট্যাবে খুলবে, এই ভিডিওর পরের ক্লিকগুলোতে সরাসরি ডাউনলোড হবে। নতুন ভিডিওর প্রথম ক্লিকে আবার স্পন্সর লিংক খুলবে।</p>'+d.formats.map(f=>`<div class="fmt"><div><b>${esc(f.label)}</b>${f.size?` <span class="small">(${esc(f.size)})</span>`:''}<br><span class="small">${esc(f.note||'')}</span></div><button type="button" class="dl-btn" data-url="${esc(f.url)}">Download</button></div>`).join('');
-    } else if(d.formatsPending){
-      fmts=`<div class="warn"><b>ডাউনলোড ফরম্যাট এখনো তৈরি হয়নি।</b><br>${esc(d.message||'এই মুহূর্তে YouTube ফরম্যাট আনা যায়নি। ভুয়া বাটন দেখানো হচ্ছে না।')}<br><button type="button" onclick="resolve()">আবার চেষ্টা করুন</button></div>`;
-    } else {
+      fmts='<p class="small">Sponsored: এই ভিডিওর প্রথম ডাউনলোড ক্লিকে একটি স্পন্সর লিংক নতুন ট্যাবে খুলবে, এই ভিডিওর পরের ক্লিকগুলোতে সরাসরি ডাউনলোড হবে। নতুন ভিডিওর প্রথম ক্লিকে আবার স্পন্সর লিংক খুলবে।</p>'+d.formats.map(f=>`<div class="q-row"><div><span class="q-badge">${esc(f.label.split('—')[0].trim())}</span> <span class="q-name">${esc(f.label)}</span><br><span class="q-size">${esc(f.note||'')}</span></div><button type="button" class="q-dl dl-btn" data-url="${esc(f.url)}">Download</button></div>`).join('');
+    }else{
       fmts=`<div class="warn"><b>এই ভিডিওর ডাউনলোড অপশন পাওয়া যায়নি।</b><br>${esc(d.message||'পাবলিক/অনুমতি থাকা ভিডিও হলে আবার চেষ্টা করুন।')}</div>`;
     }
-    out.innerHTML=`<div class="result">
-      ${d.thumbnail?`<img src="${esc(d.thumbnail)}" alt="ভিডিও ছবি" referrerpolicy="no-referrer" onerror="if(!this.dataset.fb){this.dataset.fb=1; this.src=this.src.replace('hqdefault','maxresdefault');} else {this.style.display='none';}">`:''}
-      <div><h2 style="margin-top:0">${esc(d.title||'ভিডিও (শিরোনাম আনা যায়নি)')}</h2>
-      <p>${d.author?`লেখক/চ্যানেল: ${esc(d.author)}<br>`:''}প্ল্যাটফর্ম: ${esc(d.platform||'')}${d.duration?`<br>সময়: ${esc(d.duration)}`:''}</p>
+    out.innerHTML=`<div class="result-grid">
+      ${d.thumbnail?`<div class="thumb"><img src="${esc(d.thumbnail)}" alt="ভিডিও ছবি" referrerpolicy="no-referrer" onerror="this.style.display='none'"><span class="plat-badge">${esc(d.platform||'')}</span>${d.duration?`<span class="duration">${esc(d.duration)}</span>`:''}</div>`:''}
+      <div><div class="r-title">${esc(d.title||'ভিডিও')}</div>
+      <div class="r-meta">${d.author?`লেখক/চ্যানেল: ${esc(d.author)} • `:''}প্ল্যাটফর্ম: ${esc(d.platform||'')}${d.duration?` • সময়: ${esc(d.duration)}`:''}</div>
       <p><a href="${esc(d.originalUrl||url)}" target="_blank" rel="noopener">আসল ভিডিও দেখুন ↗</a></p></div>
     </div>${d.note?`<p class="small"><b>নোট:</b> ${esc(d.note)}</p>`:''}${fmts}<p class="small">ডাউনলোড লিংক খুললে ব্রাউজারে ভিডিও চলতে পারে — সেখান থেকে Save/Download করুন।</p>`;
     attachDownloadButtons();
   }catch(e){
     clearInterval(timer);
-    out.innerHTML='<div class="err"><b>সার্ভারে সমস্যা হয়েছে।</b><br>আবার চেষ্টা করুন। Netlify-তে ফাংশন চালু আছে কিনা দেখুন।</div>';
+    out.innerHTML='<div class="err"><b>সার্ভারে সমস্যা হয়েছে।</b><br>আবার চেষ্টা করুন।</div>';
   }
 }
-$('#go').onclick=resolve;
-$('#link').addEventListener('paste',()=>setTimeout(resolve,400));
-$('#link').addEventListener('keydown',e=>{if(e.key==='Enter') resolve();});
+$('#fetchBtn').onclick=resolve;
+$('#urlInput').addEventListener('paste',()=>setTimeout(resolve,400));
+$('#urlInput').addEventListener('keydown',e=>{if(e.key==='Enter')resolve();});
+$('#urlInput').addEventListener('input',()=>markChips(detect($('#urlInput').value)));
 $('#pasteBtn').onclick=async()=>{
-  try{const t=await navigator.clipboard.readText(); if(t){$('#link').value=t; resolve();} else {$('#link').focus();}}
-  catch(e){$('#link').focus();}
+  try{const t=await navigator.clipboard.readText();if(t){$('#urlInput').value=t;resolve();}else{$('#urlInput').focus();}}
+  catch(e){$('#urlInput').focus();}
 };
+document.querySelectorAll('.qa button').forEach(b=>b.onclick=()=>b.parentElement.classList.toggle('open'));
 renderHistory();
 </script>
-<!-- Social Bar removed 2026-10-28 at user request (prize-style popups) -->
 </body>
 </html>
