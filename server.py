@@ -300,6 +300,45 @@ def resolve_tiktok_via_tikwm(url):
             "note": "TikTok সরাসরি ব্লক করায় TikWM রুটে তথ্য আনা হয়েছে।"}
 
 
+def resolve_youtube_combined(url):
+    """One light yt-dlp run (android/ios, --format best, single small
+    JSON) looking for a COMBINED audio+video MP4 — the one users
+    actually want ("সাউন্ডসহ"). Returns (info, format_dict) or
+    (None, None). Never --format all (that crashed Render free)."""
+    import subprocess
+    for client in ("android", "ios"):
+        try:
+            p = subprocess.run(
+                [YTDLP, "--no-download", "--no-playlist", "--no-warnings",
+                 "--socket-timeout", "10", "--dump-json", "--format", "best",
+                 "--extractor-args", f"youtube:player_client={client}", url],
+                capture_output=True, text=True, timeout=45,
+            )
+        except Exception:
+            continue
+        try:
+            info = json.loads(p.stdout) if p.stdout.strip() else None
+        except Exception:
+            info = None
+        if p.returncode != 0 or not info:
+            continue
+        # Prefer the info's own best URL when it is combined; else
+        # scan its formats list for a combined MP4.
+        candidates = []
+        if info.get("url"):
+            candidates.append(info)
+        candidates.extend(info.get("formats") or [])
+        for f in candidates:
+            if (f.get("url") and f.get("vcodec") not in (None, "none")
+                    and f.get("acodec") not in (None, "none")):
+                h = f.get("height")
+                res = f"{h}p" if h else ""
+                label = f"MP4 — {res} (সাউন্ডসহ)".strip()
+                return info, {"label": label, "url": f["url"],
+                              "note": "সাউন্ডসহ আসল ডাউনলোড লিংক — চাপ দিলেই সাউন্ডসহ ভিডিও নামবে, আলাদা অডিও লাগবে না।"}
+    return None, None
+
+
 def resolve(url):
     now = time.time()
     if url in _cache and now - _cache[url][0] < CACHE_SECONDS:
@@ -342,19 +381,54 @@ def resolve(url):
         except Exception:
             return None
 
-    # YouTube on Render free crashed with the old approach: yt-dlp
-    # --format all dumps a huge multi-JSON blob per client, and 5
-    # clients in a row blew the 512MB free instance (fetch failed
-    # entirely, "সার্ভারে সমস্যা"). New order, lightest first:
-    # 1) Invidious (plain HTTP, no subprocess, seconds, 1080p
-    #    video-only + M4A) — this already worked for both test videos.
-    # 2) One yt-dlp run with --format best only (single small JSON,
-    #    android client, combined format) — never --format all.
+    # YouTube: users want a SOUND-INCLUDED video first, not only
+    # video-only + separate audio. Invidious gives only adaptive
+    # (video-only) formats, so merge both light routes:
+    # 1) yt-dlp android/ios --format best (single small JSON) for a
+    #    combined MP4, if one exists for this video.
+    # 2) Invidious (plain HTTP) for high-res video-only + M4A.
+    # Combined goes FIRST in the list; the rest follow. If neither
+    # route works, fall through to the normal error path below.
+    # Never --format all (that crashed Render free with huge JSON).
     if platform == "YouTube":
-        alt = resolve_youtube_via_invidious(url)
+        # Run both light routes IN PARALLEL: sequential runs summed
+        # to 50s+ when Invidious was slow, which loses users. Parallel
+        # time is the slower of the two, not the sum; if Invidious
+        # is still slow after 20s, return the combined format alone
+        # instead of blocking the user.
+        import concurrent.futures
+        _ex = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+        try:
+            _fc = _ex.submit(resolve_youtube_combined, url)
+            _fi = _ex.submit(resolve_youtube_via_invidious, url)
+            try:
+                _cinfo, _cfmt = _fc.result(timeout=25)
+            except Exception:
+                _cinfo, _cfmt = None, None
+            try:
+                alt = _fi.result(timeout=10)
+            except Exception:
+                alt = None
+        finally:
+            _ex.shutdown(wait=False)
+        if alt and _cfmt:
+            alt["formats"] = [_cfmt] + (alt.get("formats") or [])
+            alt["note"] = "প্রথম অপশনটি সাউন্ডসহ ভিডিও — সেটা নিলে আলাদা অডিও লাগবে না। " + (alt.get("note") or "")
+            _cache[url] = (now, alt)
+            return alt
         if alt:
             _cache[url] = (now, alt)
             return alt
+        if _cinfo and _cfmt:
+            title, author = clean_title(_cinfo.get("title"), _cinfo.get("uploader"))
+            result = {"ok": True, "platform": "YouTube",
+                      "title": title or "YouTube ভিডিও", "author": author,
+                      "thumbnail": _cinfo.get("thumbnail"),
+                      "duration": fmt_duration(_cinfo.get("duration")),
+                      "originalUrl": _cinfo.get("webpage_url") or url,
+                      "formats": [_cfmt]}
+            _cache[url] = (now, result)
+            return result
 
     try:
         proc = run_ytdlp([]) if platform != "YouTube" else None
