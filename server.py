@@ -344,6 +344,20 @@ def resolve(url):
         except Exception:
             return None
 
+    # YouTube on Render free crashed with the old approach: yt-dlp
+    # --format all dumps a huge multi-JSON blob per client, and 5
+    # clients in a row blew the 512MB free instance (fetch failed
+    # entirely, "সার্ভারে সমস্যা"). New order, lightest first:
+    # 1) Invidious (plain HTTP, no subprocess, seconds, 1080p
+    #    video-only + M4A) — this already worked for both test videos.
+    # 2) One yt-dlp run with --format best only (single small JSON,
+    #    android client, combined format) — never --format all.
+    if platform == "YouTube":
+        alt = resolve_youtube_via_invidious(url)
+        if alt:
+            _cache[url] = (now, alt)
+            return alt
+
     try:
         proc = run_ytdlp([]) if platform != "YouTube" else None
         yt_info = None
@@ -355,26 +369,25 @@ def resolve(url):
                 stdout = ""
                 stderr = "YouTube clients failed"
             proc = _P()
-            # SPEED FIRST: skip the slow default web run entirely for
-            # YouTube and start with android, which returns a playable
-            # sound-included format fastest (360p). A 30s+ wait loses
-            # users; a fast 360p download beats a slow 1080p one.
-            # Only if android fails do we try the other clients, then
-            # Invidious.
-            if True:
-                for client in ("android", "ios", "tv", "web_embedded", "web"):
-                    try:
-                        p = run_ytdlp_all(["--extractor-args", f"youtube:player_client={client}"])
-                    except Exception:
-                        continue
-                    info = first_json(p.stdout) if p.stdout.strip() else None
-                    real = [f for f in (info.get("formats") or []) if f.get("url")
-                            and (f.get("vcodec") not in (None, "none") or f.get("acodec") not in (None, "none"))]
-                    if p.returncode == 0 and info and real:
-                        yt_info = info
-                        proc = p
-                        break
+            for client in ("android", "ios"):
+                try:
+                    p = subprocess.run(
+                        [YTDLP, "--no-download", "--no-playlist", "--no-warnings",
+                         "--socket-timeout", "10", "--dump-json", "--format", "best",
+                         "--extractor-args", f"youtube:player_client={client}", url],
+                        capture_output=True, text=True, timeout=45,
+                    )
+                except Exception:
+                    continue
+                try:
+                    info = json.loads(p.stdout) if p.stdout.strip() else None
+                except Exception:
+                    info = None
+                if p.returncode == 0 and info and info.get("url"):
+                    yt_info = info
                     proc = p
+                    break
+                proc = p
         if platform == "TikTok" and (proc.returncode != 0 or not proc.stdout.strip()):
             # TikTok's webpage extractor is the part datacenter IPs get
             # blocked on; its API host is a different route and often works.
