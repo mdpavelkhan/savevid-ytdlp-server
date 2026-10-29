@@ -435,14 +435,30 @@ _MERGE_JOBS = {}  # job_id -> {status, stage, file, title, error, created}
 
 
 def _merge_worker(job_id, video_url, audio_url, title):
+    # video_url / audio_url may be a single URL or an ordered list
+    # of candidates. A 403 on one googlevideo host does not mean
+    # every format is blocked, so try the next resolution / audio
+    # track before giving up, and say which file failed.
     job = _MERGE_JOBS[job_id]
     base = os.path.join("/tmp", "savevid_merge_" + job_id)
+    def _try_all(cands, dest, kind):
+        if isinstance(cands, str):
+            cands = [cands]
+        last = None
+        for u in cands:
+            try:
+                _download_file(u, dest)
+                if os.path.getsize(dest) > 0:
+                    return
+            except Exception as e:
+                last = e
+        raise RuntimeError(f"{kind} ডাউনলোডে ব্যর্থ: {last}")
     try:
         os.makedirs(base, exist_ok=True)
         job["stage"] = "ভিডিও ডাউনলোড হচ্ছে…"
-        _download_file(video_url, os.path.join(base, "v.mp4"))
+        _try_all(video_url, os.path.join(base, "v.mp4"), "ভিডিও")
         job["stage"] = "অডিও ডাউনলোড হচ্ছে…"
-        _download_file(audio_url, os.path.join(base, "a.m4a"))
+        _try_all(audio_url, os.path.join(base, "a.m4a"), "অডিও")
         job["stage"] = "ভিডিও + অডিও একসাথে করা হচ্ছে…"
         exe = ffmpeg_exe()
         if not exe:
@@ -466,10 +482,10 @@ def _merge_worker(job_id, video_url, audio_url, title):
 
 
 def start_youtube_merge(url):
-    """Start a background merge job for a YouTube video: 360p MP4
-    video (Invidious adaptive) + M4A audio, muxed with ffmpeg -c copy.
-    Returns (job_id, error_or_None). 360p only, to keep the merged
-    file small enough for Render free (disk + time)."""
+    """Start a background merge job for a YouTube video: MP4 video
+    (highest <=1080p first, then lower resolutions as fallbacks)
+    + M4A audio, muxed with ffmpeg -c copy.
+    Returns (job_id, error_or_None)."""
     vid = youtube_id_from_url(url)
     if not vid:
         return None, "ভিডিওর লিংকটি বোঝা যায়নি।"
@@ -517,7 +533,8 @@ def start_youtube_merge(url):
                            "file": None, "title": data.get("title") or "YouTube ভিডিও",
                            "error": None, "created": time.time()}
     threading.Thread(target=_merge_worker,
-                     args=(job_id, v["url"], a["url"], data.get("title")),
+                     args=(job_id, [f["url"] for f in videos],
+                           [f["url"] for f in audios], data.get("title")),
                      daemon=True).start()
     return job_id, None
 
