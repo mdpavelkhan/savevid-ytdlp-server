@@ -505,19 +505,15 @@ def start_youtube_merge(url):
             continue
     if not data:
         return None, "Invidious থেকে ভিডিওর তথ্য আনা যায়নি। কিছুক্ষণ পর আবার চেষ্টা করুন।"
-    # Pick MP4 video: highest at or below 1080p (user wants 1080p
-    # with sound), else closest to 1080p. + M4A audio.
+    # User's instruction 2026-10-29: merged output is 720p for ALL
+    # videos (smaller, faster, more likely under the size guard).
+    # Pick 720p if present, else closest to 720p. + M4A audio.
     videos = [f for f in (data.get("adaptiveFormats") or [])
               if f.get("url") and (f.get("type") or "").startswith("video/mp4")]
     def _res(f):
         m = re.search(r"(\d+)", f.get("qualityLabel") or f.get("resolution") or "")
         return int(m.group(1)) if m else 0
-    below = [f for f in videos if 0 < _res(f) <= 1080]
-    if below:
-        below.sort(key=_res, reverse=True)
-        videos = below
-    else:
-        videos.sort(key=lambda f: abs(_res(f) - 1080))
+    videos.sort(key=lambda f: abs(_res(f) - 720))
     audios = [f for f in (data.get("adaptiveFormats") or [])
               if f.get("url") and (f.get("type") or "").startswith("audio/") and (f.get("container") or "").lower() == "m4a"]
     if not videos or not audios:
