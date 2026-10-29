@@ -373,6 +373,54 @@ def ffmpeg_exe():
 
 
 def _download_file(url, dest):
+    # Parallel range download first: YouTube throttles a SINGLE
+    # connection (~0.11 MB/s measured), but several parallel range
+    # requests can add up. Fall back to a single download if the
+    # server does not support Range / Content-Length.
+    import urllib.request, threading
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"},
+                                     method="HEAD")
+        with urllib.request.urlopen(req, timeout=30) as r:
+            total = int(r.headers.get("Content-Length") or 0)
+    except Exception:
+        total = 0
+    if total > 0:
+        n = 8
+        part = total // n
+        errors = []
+        def _fetch(i):
+            try:
+                s, e = i * part, (total - 1 if i == n - 1 else (i + 1) * part - 1)
+                rq = urllib.request.Request(
+                    url, headers={"User-Agent": "Mozilla/5.0",
+                                  "Range": f"bytes={s}-{e}"})
+                with urllib.request.urlopen(rq, timeout=120) as r, \
+                        open(f"{dest}.part{i}", "wb") as out:
+                    while True:
+                        c = r.read(1024 * 256)
+                        if not c:
+                            break
+                        out.write(c)
+            except Exception as ex:
+                errors.append(ex)
+        ths = [threading.Thread(target=_fetch, args=(i,), daemon=True)
+               for i in range(n)]
+        for t in ths:
+            t.start()
+        for t in ths:
+            t.join()
+        if not errors and all(os.path.exists(f"{dest}.part{i}")
+                              for i in range(n)):
+            with open(dest, "wb") as out:
+                for i in range(n):
+                    p = f"{dest}.part{i}"
+                    with open(p, "rb") as f:
+                        out.write(f.read())
+                    os.remove(p)
+            if os.path.getsize(dest) == total:
+                return
+    # Fallback: single-connection download.
     import urllib.request
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req, timeout=60) as r, open(dest, "wb") as out:
@@ -441,13 +489,19 @@ def start_youtube_merge(url):
             continue
     if not data:
         return None, "Invidious থেকে ভিডিওর তথ্য আনা যায়নি। কিছুক্ষণ পর আবার চেষ্টা করুন।"
-    # Pick MP4 video <= 480p (prefer 360p) + M4A audio.
+    # Pick MP4 video: highest at or below 1080p (user wants 1080p
+    # with sound), else closest to 1080p. + M4A audio.
     videos = [f for f in (data.get("adaptiveFormats") or [])
               if f.get("url") and (f.get("type") or "").startswith("video/mp4")]
     def _res(f):
         m = re.search(r"(\d+)", f.get("qualityLabel") or f.get("resolution") or "")
         return int(m.group(1)) if m else 0
-    videos.sort(key=lambda f: abs(_res(f) - 360))
+    below = [f for f in videos if 0 < _res(f) <= 1080]
+    if below:
+        below.sort(key=_res, reverse=True)
+        videos = below
+    else:
+        videos.sort(key=lambda f: abs(_res(f) - 1080))
     audios = [f for f in (data.get("adaptiveFormats") or [])
               if f.get("url") and (f.get("type") or "").startswith("audio/") and (f.get("container") or "").lower() == "m4a"]
     if not videos or not audios:
