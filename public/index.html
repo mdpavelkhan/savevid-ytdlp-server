@@ -201,6 +201,7 @@ footer{border-top:1px solid #eaecf0;padding:36px 0 44px;background:#f6f7f9}
     <nav class="foot-links"><a href="#how">কিভাবে কাজ করে</a><a href="#faq">FAQ</a></nav>
   </div>
 </footer>
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 try{localStorage.removeItem('savevid_history');}catch(e){} // old 'previous video' list removed 2026-10-28: no history is kept now
@@ -332,6 +333,59 @@ async function resolve(){
             };
             poll();
           }catch(e){st.textContent='সার্ভারে সমস্যা হয়েছে। আবার চেষ্টা করুন।';}
+        };
+      }
+    }
+    // YouTube BROWSER merge: download video+audio directly from
+    // the user's own browser (user's IP is not datacenter-blocked
+    // like Render's) and mux with ffmpeg.wasm on-device. This is
+    // the fallback when server merge gets 403. First click follows
+    // the same Sponsored first-click rule as Download buttons.
+    if(d.platform==='YouTube' && d.formats){
+      const vids=(d.formats||[]).filter(f=>/ভিডিও-only/.test(f.label) && /^MP4/.test(f.label));
+      const resOf=f=>{const m=(f.label||'').match(/(\d+)p/);return m?parseInt(m[1],10):0;};
+      vids.sort((a,b)=>resOf(b)-resOf(a));
+      const aud=(d.formats||[]).find(f=>/অডিও/.test(f.label) && !/ভিডিও-only/.test(f.label));
+      const box=document.querySelector('#resultBox');
+      if(vids.length && aud && box){
+        const brow=document.createElement('div');
+        brow.className='q-row';
+        brow.innerHTML=`<div><span class="q-badge">MP4</span> <span class="q-name">ব্রাউজারে মার্জ করুন (সাউন্ডসহ) — আপনার ফোনেই ভিডিও+অডিও এক হবে, সার্ভারে নয়</span><br><span class="q-size" id="browserMergeStatus">আপনার ব্রাউজার সরাসরি ভিডিও আর অডিও টেনে আপনার ডিভাইসেই এক করবে। লম্বা/বড় ভিডিওতে ফোনের মেমোরি কম পড়তে পারে।</span></div><button type="button" class="q-dl" id="browserMergeBtn">ব্রাউজারে মার্জ করুন</button>`;
+        box.insertBefore(brow, box.querySelector('.q-row'));
+        document.getElementById('browserMergeBtn').onclick=async()=>{
+          if(!adShownForVideo()){
+            markAdShownForVideo();
+            window.open(DIRECT_LINK,'_blank','noopener');
+            alert('Sponsored লিংক নতুন ট্যাবে খুলেছে। এই ভিডিওর জন্য আবার "ব্রাউজারে মার্জ করুন" বাটনে চাপ দিলে মার্জ শুরু হবে।');
+            return;
+          }
+          const st=document.getElementById('browserMergeStatus');
+          try{
+            if(typeof FFmpeg==='undefined'||!FFmpeg.createFFmpeg){st.textContent='দুঃখিত: এই ব্রাউজারে FFmpeg লোড হয়নি। নেট সংযোগ চেক করে আবার চেষ্টা করুন।';return;}
+            st.textContent='FFmpeg লোড হচ্ছে… (প্রথমবার একটু সময় লাগতে পারে)';
+            if(!window._svFF){
+              const {createFFmpeg,fetchFile}=FFmpeg;
+              window._svFF={ffmpeg:createFFmpeg({log:false,corePath:'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'}),fetchFile};
+              await window._svFF.ffmpeg.load();
+            }
+            const {ffmpeg,fetchFile}=window._svFF;
+            st.textContent='ভিডিও ডাউনলোড হচ্ছে আপনার ব্রাউজারে…';
+            const vdata=await fetchFile(vids[0].url);
+            st.textContent='অডিও ডাউনলোড হচ্ছে…';
+            const adata=await fetchFile(aud.url);
+            ffmpeg.FS('writeFile','v.mp4',vdata);
+            ffmpeg.FS('writeFile','a.m4a',adata);
+            st.textContent='ভিডিও + অডিও এক করা হচ্ছে…';
+            await ffmpeg.run('-i','v.mp4','-i','a.m4a','-c','copy','-shortest','out.mp4');
+            const out=ffmpeg.FS('readFile','out.mp4');
+            const blob=new Blob([out.buffer],{type:'video/mp4'});
+            const blobUrl=URL.createObjectURL(blob);
+            const safeTitle=(d.title||'video').replace(/[^\w\u0980-\u09FF\- ]+/g,'').trim().slice(0,60)||'video';
+            st.innerHTML='তৈরি! <a href="'+blobUrl+'" download="'+esc(safeTitle)+'_sound.mp4">সাউন্ডসহ MP4 ডাউনলোড করুন ↗</a> ('+Math.round(blob.size/1048576)+' MB)';
+            try{ffmpeg.FS('unlink','v.mp4');ffmpeg.FS('unlink','a.m4a');ffmpeg.FS('unlink','out.mp4');}catch(e){}
+          }catch(e){
+            st.textContent='দুঃখিত: ব্রাউজার মার্জ ব্যর্থ হয়েছে। '+(e&&e.message?e.message:'')+' যদি CORS/নেটওয়ার্ক এরর হয়, তাহলে এই ভিডিওর লিংক ব্রাউজার থেকে টানা যাচ্ছে না।';
+          }
         };
       }
     }
