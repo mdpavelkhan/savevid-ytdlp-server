@@ -733,6 +733,18 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):  # keep logs quiet
         pass
 
+    def send_response(self, code, message=None):
+        # Cross-origin isolation (user instruction 2026-10-29):
+        # enables SharedArrayBuffer so ffmpeg.wasm browser merge
+        # can load. Tradeoff verified 2026-10-29: unpkg ffmpeg
+        # sends CORP: cross-origin (loads fine), but Adsterra
+        # bauval.org sends NO CORP header, so its banner scripts
+        # may be blocked under require-corp. If banners stop
+        # loading, switch COEP to "credentialless" as follow-up.
+        super().send_response(code, message)
+        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+        self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
+
     def _send_json(self, obj, status=200):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
