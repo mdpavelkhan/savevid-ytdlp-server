@@ -303,6 +303,38 @@ async function resolve(){
         };
       }
     }
+    // YouTube merged download: FFmpeg mux on the server
+    // (video + audio, parallel download). Shown for every YouTube
+    // result — this is the FFmpeg trial the user asked for.
+    if(d.platform==='YouTube'){
+      const box=document.querySelector('#resultBox');
+      if(box){
+        const mrow=document.createElement('div');
+        mrow.className='q-row';
+        mrow.innerHTML=`<div><span class="q-badge">MP4</span> <span class="q-name">সাউন্ডসহ মার্জড MP4 (১০৮০পি পর্যন্ত) — FFmpeg দিয়ে এক করা</span><br><span class="q-size" id="ytMergeStatus">সার্ভারে ভিডিও + অডিও একসাথে করে দেওয়া হবে। লম্বা ভিডিওতে কয়েক মিনিট লাগতে পারে, ৫০০MB-এর বেশি হলে মার্জ হবে না।</span></div><button type="button" class="q-dl" id="ytMergeBtn">তৈরি করুন</button>`;
+        box.insertBefore(mrow, box.querySelector('.q-row'));
+        document.getElementById('ytMergeBtn').onclick=async()=>{
+          const st=document.getElementById('ytMergeStatus');
+          st.textContent='মার্জ শুরু হচ্ছে…';
+          try{
+            const r=await fetch('/api/merge?url='+encodeURIComponent(url));
+            const j=await r.json();
+            if(!j.ok){st.textContent='দুঃখিত: '+(j.error||'মার্জ শুরু করা যায়নি।');return;}
+            const poll=async()=>{
+              const s=await (await fetch('/api/merge/status?job='+j.job)).json();
+              if(s.status==='ready'){
+                st.innerHTML='তৈরি! <a href="/api/merge/file?job='+j.job+'" target="_blank" rel="noopener">সাউন্ডসহ MP4 ডাউনলোড করুন ↗</a>';
+                return;
+              }
+              if(s.status==='error'){st.textContent='দুঃখিত: '+(s.error||'মার্জ ব্যর্থ হয়েছে।');return;}
+              st.textContent=s.stage||'কাজ চলছে…';
+              setTimeout(poll,5000);
+            };
+            poll();
+          }catch(e){st.textContent='সার্ভারে সমস্যা হয়েছে। আবার চেষ্টা করুন।';}
+        };
+      }
+    }
     // YouTube: if the fast list has no sound-included format yet,
     // fetch the android combined format in the background and
     // prepend it when it arrives — without blocking the first list.
