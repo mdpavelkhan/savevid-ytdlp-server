@@ -138,6 +138,12 @@ footer{border-top:1px solid #eaecf0;padding:36px 0 44px;background:#f6f7f9}
       </div>
       <p class="hint">টিপ: যেকোনো একটা লিংক পেস্ট করলেই খোঁজা শুরু হবে, প্ল্যাটফর্ম অটো-ডিটেক্ট হয়ে আসল ভিডিওর নাম, ছবি ও ডাউনলোড অপশন দেখাবে।</p>
       <div class="result" id="resultBox" aria-live="polite"></div>
+      <div class="q-row" id="fileMergeBox" style="margin-top:12px">
+        <div><span class="q-badge">MP4</span> <span class="q-name">ডাউনলোড করা ফাইল মার্জ করুন (নতুন পদ্ধতি)</span><br><span class="q-size" id="fileMergeStatus">১) SaveVid থেকে ৭২০পি ভিডিও-only আর M4A অডিও আলাদা ডাউনলোড করুন (এগুলো আপনার ফোনের নেটে দ্রুত নামে, কোনো প্রক্সি/সার্ভার ব্লক নেই)। ২) নিচে সেই ২টা ফাইল বেছে মার্জ চাপুন — আপনার ফোনেই এক হবে, কোনো লিংক টানা হবে না, তাই CORS/৪০৩ এখানে আসবে না।</span><br>
+        <label style="display:block;margin-top:8px">ভিডিও ফাইল (MP4, ভিডিও-only): <input type="file" id="fileMergeVideo" accept="video/mp4,.mp4"></label>
+        <label style="display:block;margin-top:6px">অডিও ফাইল (M4A): <input type="file" id="fileMergeAudio" accept="audio/mp4,.m4a,audio/*"></label>
+        </div><button type="button" class="q-dl" id="fileMergeBtn">ফাইল মার্জ করুন</button>
+      </div>
     </div>
     <div class="trust-row">
       <span>✓ 100% ফ্রি</span><span>✓ সাইন-আপ লাগবে না</span><span>✓ HD পর্যন্ত</span><span>✓ মোবাইল ও PC — দুটোতেই চলে</span>
@@ -429,6 +435,38 @@ $('#urlInput').addEventListener('input',()=>markChips(detect($('#urlInput').valu
 $('#pasteBtn').onclick=async()=>{
   try{const t=await navigator.clipboard.readText();if(t){$('#urlInput').value=t;resolve();}else{$('#urlInput').focus();}}
   catch(e){$('#urlInput').focus();}
+};
+// Fresh file-based merge (2026-10-29): NO network fetch at all.
+// User downloads video-only + audio via the normal Download
+// buttons (fast, direct, no CORS/proxy/server 403), then picks
+// those 2 local files here. ffmpeg.wasm only muxes local files.
+document.getElementById('fileMergeBtn').onclick=async()=>{
+  const st=document.getElementById('fileMergeStatus');
+  const vf=document.getElementById('fileMergeVideo').files[0];
+  const af=document.getElementById('fileMergeAudio').files[0];
+  if(!vf||!af){st.textContent='দুঃখিত: ভিডিও ফাইল আর অডিও ফাইল — দুটোই বেছে নিন।';return;}
+  try{
+    if(typeof FFmpeg==='undefined'||!FFmpeg.createFFmpeg){st.textContent='দুঃখিত: এই ব্রাউজারে FFmpeg লোড হয়নি। নেট সংযোগ চেক করে আবার চেষ্টা করুন।';return;}
+    st.textContent='FFmpeg লোড হচ্ছে… (প্রথমবার একটু সময় লাগতে পারে)';
+    if(!window._svFF){
+      const {createFFmpeg,fetchFile}=FFmpeg;
+      window._svFF={ffmpeg:createFFmpeg({log:false,corePath:'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js'}),fetchFile};
+      await window._svFF.ffmpeg.load();
+    }
+    const {ffmpeg,fetchFile}=window._svFF;
+    st.textContent='ফাইল পড়া হচ্ছে…';
+    ffmpeg.FS('writeFile','v.mp4',await fetchFile(vf));
+    ffmpeg.FS('writeFile','a.m4a',await fetchFile(af));
+    st.textContent='ভিডিও + অডিও এক করা হচ্ছে…';
+    await ffmpeg.run('-i','v.mp4','-i','a.m4a','-c','copy','-shortest','out.mp4');
+    const out=ffmpeg.FS('readFile','out.mp4');
+    const blob=new Blob([out.buffer],{type:'video/mp4'});
+    const blobUrl=URL.createObjectURL(blob);
+    st.innerHTML='তৈরি! <a href="'+blobUrl+'" download="merged_sound.mp4">সাউন্ডসহ MP4 ডাউনলোড করুন ↗</a> ('+Math.round(blob.size/1048576)+' MB)';
+    try{ffmpeg.FS('unlink','v.mp4');ffmpeg.FS('unlink','a.m4a');ffmpeg.FS('unlink','out.mp4');}catch(e){}
+  }catch(e){
+    st.textContent='দুঃখিত: ফাইল মার্জ ব্যর্থ হয়েছে। '+(e&&e.message?e.message:'');
+  }
 };
 document.querySelectorAll('.qa button').forEach(b=>b.onclick=()=>b.parentElement.classList.toggle('open'));
 </script>
