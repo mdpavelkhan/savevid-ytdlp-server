@@ -312,7 +312,7 @@ async function resolve(){
       if(box){
         const mrow=document.createElement('div');
         mrow.className='q-row';
-        mrow.innerHTML=`<div><span class="q-badge">MP4</span> <span class="q-name">সাউন্ডসহ মার্জড MP4 (১০৮০পি পর্যন্ত) — FFmpeg দিয়ে এক করা</span><br><span class="q-size" id="ytMergeStatus">সার্ভারে ভিডিও + অডিও একসাথে করে দেওয়া হবে। লম্বা ভিডিওতে কয়েক মিনিট লাগতে পারে, ৫০০MB-এর বেশি হলে মার্জ হবে না।</span></div><button type="button" class="q-dl" id="ytMergeBtn">তৈরি করুন</button>`;
+        mrow.innerHTML=`<div><span class="q-badge">MP4</span> <span class="q-name">সাউন্ডসহ মার্জড MP4 (৭২০পি) — FFmpeg দিয়ে এক করা</span><br><span class="q-size" id="ytMergeStatus">সার্ভারে ৭২০পি ভিডিও + অডিও একসাথে করে দেওয়া হবে। লম্বা ভিডিওতে কয়েক মিনিট লাগতে পারে, ৫০০MB-এর বেশি হলে মার্জ হবে না।</span></div><button type="button" class="q-dl" id="ytMergeBtn">তৈরি করুন</button>`;
         box.insertBefore(mrow, box.querySelector('.q-row'));
         document.getElementById('ytMergeBtn').onclick=async()=>{
           const st=document.getElementById('ytMergeStatus');
@@ -344,13 +344,16 @@ async function resolve(){
     if(d.platform==='YouTube' && d.formats){
       const vids=(d.formats||[]).filter(f=>/ভিডিও-only/.test(f.label) && /^MP4/.test(f.label));
       const resOf=f=>{const m=(f.label||'').match(/(\d+)p/);return m?parseInt(m[1],10):0;};
-      vids.sort((a,b)=>resOf(b)-resOf(a));
+      // User's instruction: merged output is 720p for ALL videos
+      // (smaller, faster, phone-friendly). Pick 720p if present,
+      // else the closest resolution to 720p.
+      vids.sort((a,b)=>Math.abs(resOf(a)-720)-Math.abs(resOf(b)-720));
       const aud=(d.formats||[]).find(f=>/অডিও/.test(f.label) && !/ভিডিও-only/.test(f.label));
       const box=document.querySelector('#resultBox');
       if(vids.length && aud && box){
         const brow=document.createElement('div');
         brow.className='q-row';
-        brow.innerHTML=`<div><span class="q-badge">MP4</span> <span class="q-name">ব্রাউজারে মার্জ করুন (সাউন্ডসহ) — আপনার ফোনেই ভিডিও+অডিও এক হবে, সার্ভারে নয়</span><br><span class="q-size" id="browserMergeStatus">আপনার ব্রাউজার সরাসরি ভিডিও আর অডিও টেনে আপনার ডিভাইসেই এক করবে। লম্বা/বড় ভিডিওতে ফোনের মেমোরি কম পড়তে পারে।</span></div><button type="button" class="q-dl" id="browserMergeBtn">ব্রাউজারে মার্জ করুন</button>`;
+        brow.innerHTML=`<div><span class="q-badge">MP4</span> <span class="q-name">ব্রাউজারে মার্জ করুন — ৭২০পি সাউন্ডসহ (আপনার ফোনেই ভিডিও+অডিও এক হবে, সার্ভারে নয়)</span><br><span class="q-size" id="browserMergeStatus">আপনার ব্রাউজার সরাসরি ৭২০পি ভিডিও আর অডিও টেনে আপনার ডিভাইসেই এক করবে। লম্বা/বড় ভিডিওতে ফোনের মেমোরি কম পড়তে পারে।</span></div><button type="button" class="q-dl" id="browserMergeBtn">ব্রাউজারে মার্জ করুন</button>`;
         box.insertBefore(brow, box.querySelector('.q-row'));
         document.getElementById('browserMergeBtn').onclick=async()=>{
           if(!adShownForVideo()){
