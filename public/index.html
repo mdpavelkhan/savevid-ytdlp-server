@@ -201,7 +201,7 @@ footer{border-top:1px solid #eaecf0;padding:36px 0 44px;background:#f6f7f9}
     <nav class="foot-links"><a href="#how">কিভাবে কাজ করে</a><a href="#faq">FAQ</a></nav>
   </div>
 </footer>
-<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 try{localStorage.removeItem('savevid_history');}catch(e){} // old 'previous video' list removed 2026-10-28: no history is kept now
@@ -368,14 +368,23 @@ async function resolve(){
             st.textContent='FFmpeg লোড হচ্ছে… (প্রথমবার একটু সময় লাগতে পারে)';
             if(!window._svFF){
               const {createFFmpeg,fetchFile}=FFmpeg;
-              window._svFF={ffmpeg:createFFmpeg({log:false,corePath:'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'}),fetchFile};
+              window._svFF={ffmpeg:createFFmpeg({log:false,corePath:'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js'}),fetchFile};
               await window._svFF.ffmpeg.load();
             }
             const {ffmpeg,fetchFile}=window._svFF;
+            // Cloudflare Worker proxy (user chose this route after
+            // Oracle declined his card). For now this is a public
+            // test Worker (proxy.life23243.workers.dev, ?link= format,
+            // ACAO * verified live) to prove the Worker concept;
+            // the user will later replace it with his own Worker
+            // (which uses ?url= format — change WORKER_PARAM then).
+            const WORKER_PROXY='https://proxy.life23243.workers.dev';
+            const WORKER_PARAM='link';
+            const viaWorker=u=>WORKER_PROXY?WORKER_PROXY+'?'+WORKER_PARAM+'='+encodeURIComponent(u):u;
             st.textContent='ভিডিও ডাউনলোড হচ্ছে আপনার ব্রাউজারে…';
-            const vdata=await fetchFile(vids[0].url);
+            const vdata=await fetchFile(viaWorker(vids[0].url));
             st.textContent='অডিও ডাউনলোড হচ্ছে…';
-            const adata=await fetchFile(aud.url);
+            const adata=await fetchFile(viaWorker(aud.url));
             ffmpeg.FS('writeFile','v.mp4',vdata);
             ffmpeg.FS('writeFile','a.m4a',adata);
             st.textContent='ভিডিও + অডিও এক করা হচ্ছে…';
