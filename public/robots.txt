@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://savevidbd-md0v.onrender.com/sitemap.xml
