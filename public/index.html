@@ -148,12 +148,6 @@ footer{border-top:1px solid #eaecf0;padding:36px 0 44px;background:#f6f7f9}
       </div>
       <p class="hint">টিপ: যেকোনো একটা লিংক পেস্ট করলেই খোঁজা শুরু হবে, প্ল্যাটফর্ম অটো-ডিটেক্ট হয়ে আসল ভিডিওর নাম, ছবি ও ডাউনলোড অপশন দেখাবে।</p>
       <div class="result" id="resultBox" aria-live="polite"></div>
-      <div class="q-row" id="fileMergeBox" style="margin-top:12px">
-        <div><span class="q-badge">MP4</span> <span class="q-name">ডাউনলোড করা ফাইল মার্জ করুন (নতুন পদ্ধতি)</span><br><span class="q-size" id="fileMergeStatus">১) একটি MP4 ভিডিও ফাইল আর একটি M4A অডিও ফাইল থাকলে নিচে সেই ২টা ফাইল বেছে মার্জ চাপুন — আপনার ফোনেই এক হবে, কোনো লিংক টানা হবে না, তাই CORS/৪০৩ এখানে আসবে না।</span><br>
-        <label style="display:block;margin-top:8px">ভিডিও ফাইল (MP4, ভিডিও-only): <input type="file" id="fileMergeVideo" accept="video/mp4,.mp4"></label>
-        <label style="display:block;margin-top:6px">অডিও ফাইল (M4A): <input type="file" id="fileMergeAudio" accept="audio/mp4,.m4a,audio/*"></label>
-        </div><button type="button" class="q-dl" id="fileMergeBtn">ফাইল মার্জ করুন</button>
-      </div>
     </div>
     <div class="trust-row">
       <span>✓ 100% ফ্রি</span><span>✓ সাইন-আপ লাগবে না</span><span>✓ HD পর্যন্ত</span><span>✓ মোবাইল ও PC — দুটোতেই চলে</span>
@@ -280,7 +274,7 @@ function svCandidates(url,platform){return platform==='YouTube'?[viaWorker(url),
 async function svFetchResponse(url,platform){
   let last=null;
   for(const u of svCandidates(url,platform)){
-    try{const r=await fetch(u); if(!r.ok) throw new Error('HTTP '+r.status); return r;}catch(e){last=e;}
+    const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),30000);try{const r=await fetch(u,{signal:ctl.signal});clearTimeout(to);if(!r.ok)throw new Error('HTTP '+r.status);return r;}catch(e){clearTimeout(to);last=e;}
   }
   throw last||new Error('ডাউনলোড করা যায়নি');
 }
@@ -299,7 +293,6 @@ async function svReadAll(res,onProg){
   while(true){const x=await reader.read(); if(x.done) break; chunks.push(x.value); got+=x.value.length; if(onProg)onProg(got);}
   return svConcat(chunks);
 }
-async function svLoadFF(){
   if(typeof FFmpeg==='undefined'||!FFmpeg.createFFmpeg) throw new Error('এই ব্রাউজারে FFmpeg লোড হয়নি। নেট সংযোগ চেক করে আবার চেষ্টা করুন।');
   if(!window._svFF){const {createFFmpeg,fetchFile}=FFmpeg; window._svFF={ffmpeg:createFFmpeg({log:false,corePath:'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js'}),fetchFile}; await window._svFF.ffmpeg.load();}
   return window._svFF;
@@ -308,13 +301,13 @@ async function svMergeBrowser(q,platform){
   const aud=svAudioFormat(svData.formats);
   if(!aud) throw new Error('এই ভিডিওর অডিও ফরম্যাট পাওয়া যায়নি।');
   const vRes=await svFetchResponse(q.video.url,platform);
-  const aRes=await svFetchResponse(aud.url,platform);
   const vTotal=parseInt(vRes.headers.get('content-length')||'0',10)||0;
+  const vData=await svReadAll(vRes,g=>svSetProgress(g,vTotal));
+  const aRes=await svFetchResponse(aud.url,platform);
   const aTotal=parseInt(aRes.headers.get('content-length')||'0',10)||0;
   const total=vTotal+aTotal;
-  let downloaded=0;
-  const vData=await svReadAll(vRes,g=>svSetProgress(downloaded+g,total));
-  downloaded+=vData.length;
+  let downloaded=vData.length;
+  // video bytes already counted above
   const aData=await svReadAll(aRes,g=>svSetProgress(downloaded+g,total));
   const t=$('#svProgressText'); if(t)t.textContent='ভিডিও + অডিও এক করা হচ্ছে…';
   const {ffmpeg}=await svLoadFF();
@@ -398,7 +391,7 @@ async function resolve(){
       <div><div class="r-title">${esc(d.title||'ভিডিও')}</div>
       <div class="r-meta">${d.author?`লেখক/চ্যানেল: ${esc(d.author)} • `:''}প্ল্যাটফর্ম: ${esc(d.platform||'')}${d.duration?` • সময়: ${esc(d.duration)}`:''}</div>
       <p><a href="${esc(d.originalUrl||url)}" target="_blank" rel="noopener">আসল ভিডিও দেখুন ↗</a></p></div>
-    </div>${d.note?`<p class="small"><b>নোট:</b> ${esc(d.note)}</p>`:''}<div id="svQualities">${qHtml}</div>${svQualities.length?`<button type="button" class="sv-main" id="svDownloadBtn">↓ ডাউনলোড</button><div class="sv-prog" id="svProgress"><div id="svProgressText">ভিডিও ডাউনলোডিং… 0%</div><div class="sv-bar"><i id="svProgressBar"></i></div></div><div class="sv-ready" id="svReady"></div>`:''}<p class="small">প্রথম Download চাপে Sponsored লিংক নতুন ট্যাবে খুলবে এবং একই সাথে ডাউনলোড/মার্জ শুরু হবে; পরের চাপে শুধু ডাউনলোড হবে। সব ভিডিও সাউন্ডসহ MP4 হিসেবে দেওয়া হয়।</p>`;
+    </div><div id="svQualities">${qHtml}</div>${svQualities.length?`<button type="button" class="sv-main" id="svDownloadBtn">↓ ডাউনলোড</button><div class="sv-prog" id="svProgress"><div id="svProgressText">ভিডিও ডাউনলোডিং… 0%</div><div class="sv-bar"><i id="svProgressBar"></i></div></div><div class="sv-ready" id="svReady"></div>`:''}<p class="small">প্রথম Download চাপে Sponsored লিংক নতুন ট্যাবে খুলবে এবং একই সাথে ডাউনলোড/মার্জ শুরু হবে; পরের চাপে শুধু ডাউনলোড হবে। সব ভিডিও সাউন্ডসহ MP4 হিসেবে দেওয়া হয়।</p>`;
     document.querySelectorAll('input[name="svq"]').forEach(rr=>{rr.onchange=()=>{svSelected=parseInt(rr.value,10); document.querySelectorAll('.sv-q').forEach((el,idx)=>el.classList.toggle('sel',idx===svSelected)); const rd=$('#svReady'); if(rd)rd.classList.remove('show'); const pg=$('#svProgress'); if(pg)pg.classList.remove('show'); svReadyFor=null; svReadyUrl=null;};});
     const dlBtn=$('#svDownloadBtn'); if(dlBtn) dlBtn.onclick=startSvDownload;
   }catch(e){
@@ -414,34 +407,7 @@ $('#pasteBtn').onclick=async()=>{
   try{const t=await navigator.clipboard.readText();if(t){$('#urlInput').value=t;resolve();}else{$('#urlInput').focus();}}
   catch(e){$('#urlInput').focus();}
 };
-document.getElementById('fileMergeBtn').onclick=async()=>{
-  const st=document.getElementById('fileMergeStatus');
-  const vf=document.getElementById('fileMergeVideo').files[0];
-  const af=document.getElementById('fileMergeAudio').files[0];
-  if(!vf||!af){st.textContent='দুঃখিত: ভিডিও ফাইল আর অডিও ফাইল — দুটোই বেছে নিন।';return;}
-  try{
-    if(typeof FFmpeg==='undefined'||!FFmpeg.createFFmpeg){st.textContent='দুঃখিত: এই ব্রাউজারে FFmpeg লোড হয়নি। নেট সংযোগ চেক করে আবার চেষ্টা করুন।';return;}
-    st.textContent='FFmpeg লোড হচ্ছে… (প্রথমবার একটু সময় লাগতে পারে)';
-    if(!window._svFF){
-      const {createFFmpeg,fetchFile}=FFmpeg;
-      window._svFF={ffmpeg:createFFmpeg({log:false,corePath:'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js'}),fetchFile};
-      await window._svFF.ffmpeg.load();
-    }
-    const {ffmpeg,fetchFile}=window._svFF;
-    st.textContent='ফাইল পড়া হচ্ছে…';
-    ffmpeg.FS('writeFile','v.mp4',await fetchFile(vf));
-    ffmpeg.FS('writeFile','a.m4a',await fetchFile(af));
-    st.textContent='ভিডিও + অডিও এক করা হচ্ছে…';
-    await ffmpeg.run('-i','v.mp4','-i','a.m4a','-c','copy','-shortest','out.mp4');
-    const out=ffmpeg.FS('readFile','out.mp4');
-    const blob=new Blob([out.buffer],{type:'video/mp4'});
-    const blobUrl=URL.createObjectURL(blob);
-    st.innerHTML='তৈরি! <a href="'+blobUrl+'" download="merged_sound.mp4">সাউন্ডসহ MP4 ডাউনলোড করুন ↗</a> ('+Math.round(blob.size/1048576)+' MB)';
-    try{ffmpeg.FS('unlink','v.mp4');ffmpeg.FS('unlink','a.m4a');ffmpeg.FS('unlink','out.mp4');}catch(e){}
-  }catch(e){
-    st.textContent='দুঃখিত: ফাইল মার্জ ব্যর্থ হয়েছে। '+(e&&e.message?e.message:'');
-  }
-};
+
 document.querySelectorAll('.qa button').forEach(b=>b.onclick=()=>b.parentElement.classList.toggle('open'));
 </script>
 </body>
