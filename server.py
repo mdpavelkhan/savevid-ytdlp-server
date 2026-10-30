@@ -743,7 +743,7 @@ class Handler(BaseHTTPRequestHandler):
         # loading, switch COEP to "credentialless" as follow-up.
         super().send_response(code, message)
         self.send_header("Cross-Origin-Opener-Policy", "same-origin")
-        self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
+        self.send_header("Cross-Origin-Embedder-Policy", "credentialless")
 
     def _send_json(self, obj, status=200):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
