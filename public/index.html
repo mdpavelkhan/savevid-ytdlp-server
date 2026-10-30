@@ -293,7 +293,8 @@ async function svReadAll(res,onProg){
   while(true){const x=await reader.read(); if(x.done) break; chunks.push(x.value); got+=x.value.length; if(onProg)onProg(got);}
   return svConcat(chunks);
 }
-  if(typeof FFmpeg==='undefined'||!FFmpeg.createFFmpeg) throw new Error('এই ব্রাউজারে FFmpeg লোড হয়নি। নেট সংযোগ চেক করে আবার চেষ্টা করুন।');
+  
+  async function svLoadFF(){if(typeof FFmpeg==='undefined'||!FFmpeg.createFFmpeg) throw new Error('এই ব্রাউজারে FFmpeg লোড হয়নি। নেট সংযোগ চেক করে আবার চেষ্টা করুন।');
   if(!window._svFF){const {createFFmpeg,fetchFile}=FFmpeg; window._svFF={ffmpeg:createFFmpeg({log:false,corePath:'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js'}),fetchFile}; await window._svFF.ffmpeg.load();}
   return window._svFF;
 }
