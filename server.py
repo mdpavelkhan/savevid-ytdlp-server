@@ -876,8 +876,16 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/", "/index.html", "/robots.txt", "/sitemap.xml"):
             self._send_file(os.path.join("public", path.strip("/") or "index.html"), "text/plain; charset=utf-8" if path == "/robots.txt" else "application/xml; charset=utf-8" if path == "/sitemap.xml" else "text/html; charset=utf-8")
             return
-        self.send_response(404)
-        self.end_headers()
+        if path == "/robots.txt":
+         body = b"User-agent: *\nAllow: /\n"
+         self.send_response(200)
+         self.send_header("Content-Type", "text/plain")
+         self.send_header("Content-Length", str(len(body)))
+         self.end_headers()
+         self.wfile.write(body)
+         return
+         self.send_response(404)
+         self.end_headers()
 
 
 if __name__ == "__main__":
