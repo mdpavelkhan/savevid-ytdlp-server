@@ -873,14 +873,8 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._send_json({"ok": False})
             return
-         if path == "/robots.txt":
-          self._send_file(os.path.join("public", "robots.txt"), "text/plain; charset=utf-8")
-          return
-      if path == "/sitemap.xml":
-       self._send_file(os.path.join("public", "sitemap.xml"), "application/xml; charset=utf-8")
-       return
-        if path in ("/", "/index.html"):
-            self._send_file(os.path.join("public", "index.html"), "text/html; charset=utf-8")
+        if path in ("/", "/index.html", "/robots.txt", "/sitemap.xml"):
+            self._send_file(os.path.join("public", path.strip("/") or "index.html"), "text/plain; charset=utf-8" if path == "/robots.txt" else "application/xml; charset=utf-8" if path == "/sitemap.xml" else "text/html; charset=utf-8")
             return
         self.send_response(404)
         self.end_headers()
